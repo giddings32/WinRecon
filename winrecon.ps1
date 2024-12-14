@@ -1,3 +1,183 @@
+# Define variables to track enabled functions (default all enabled)
+$EnableSystemInfo = $true
+$EnableUserGroups = $true
+$EnableUserFolderContents = $true
+$EnablePowerShellHistory = $true
+$EnableRecentFiles = $true
+$EnableInstalledSoftware = $true
+$EnableProgramFilesContents = $true
+$EnableKDBXFiles = $true
+$EnableXAMPPConfigFiles = $true
+$EnableNetworkConnections = $true
+$EnableRunningProcesses = $true
+$EnableBrowserCredentials = $true
+$EnableStartupPrograms = $true
+$EnableScheduledTasks = $true
+
+# Initial Menu for Recon Mode
+do {
+    Write-Host "`n" -NoNewLine
+    Write-Host "Select the Recon Mode:"
+    Write-Host "1. Run Full Recon - Execute all recon functions without changes."
+    Write-Host "2. Run Custom Recon - (Select which functions to enable)"
+    Write-Host "3. Run Recon with Exclusions (Select which functions to disable)."
+    Write-Host "`n" -NoNewLine
+    $ReconMode = Read-Host "Enter 1, 2, or 3"
+
+    # Check input validity
+    if ($ReconMode -notin "1", "2", "3") {
+        Write-Host "Invalid input. Please enter 1, 2, or 3." -ForegroundColor Yellow
+    }
+} until ($ReconMode -in "1", "2", "3")  # Keep asking until input is valid
+
+function Get-ValidUserInput {
+    param (
+        [string]$PromptMessage,
+        [array]$ValidOptions
+    )
+    do {
+        # Prompt user for input
+        $userInput = Read-Host $PromptMessage
+
+        # Validate input: Ensure it matches the pattern (numbers separated by commas)
+        if ($userInput -match '^\d+(,\d+)*$') {
+            # Convert input into an array and check each number
+            $inputArray = $userInput -split ',' | ForEach-Object { $_.Trim() }
+
+            # Ensure all numbers are within the valid range
+            if ($inputArray | Where-Object { $_ -notin $ValidOptions }) {
+                Write-Host "Invalid input: Numbers must be between $($ValidOptions -join ' and ')." -ForegroundColor Yellow
+            }
+            else {
+                return $inputArray  # Valid input
+            }
+        }
+        else {
+            Write-Host "Invalid input format: Please enter numbers only, separated by commas (e.g., 1,2,3)." -ForegroundColor Yellow
+        }
+    } until ($false)  # Loop until valid input is provided
+}
+
+# Handle Recon Mode Selection
+switch ($ReconMode) {
+    "1" {
+        Write-Host "`n" -NoNewLine
+        Write-Host "Running Full Recon... All functions will be executed."
+        # No changes to function enable/disable variables
+    }
+    "2" {
+        Write-Host "`n" -NoNewLine
+        Write-Host "Running Custom Recon... All functions are disabled. Select which functions to enable."
+        # Disable all functions
+        $EnableSystemInfo = $false
+        $EnableUserGroups = $false
+        $EnableUserFolderContents = $false
+        $EnablePowerShellHistory = $false
+        $EnableRecentFiles = $false
+        $EnableInstalledSoftware = $false
+        $EnableProgramFilesContents = $false
+        $EnableKDBXFiles = $false
+        $EnableXAMPPConfigFiles = $false
+        $EnableNetworkConnections = $false
+        $EnableRunningProcesses = $false
+        $EnableBrowserCredentials = $false
+        $EnableStartupPrograms = $false
+        $EnableScheduledTasks = $false
+
+        # Ask user which functions to enable
+        Write-Host "`n" -NoNewLine
+        Write-Host "Select the functions to ENABLE:"
+        Write-Host "1. Get-SystemInfo"
+        Write-Host "2. Get-UserGroups"
+        Write-Host "3. Get-UserFolderContents"
+        Write-Host "4. Get-PowerShellHistory"
+        Write-Host "5. Get-RecentFiles"
+        Write-Host "6. Get-InstalledSoftware"
+        Write-Host "7. Get-ProgramFilesContents"
+        Write-Host "8. Get-KDBXFiles"
+        Write-Host "9. Get-XAMPPConfigFiles"
+        Write-Host "10. Get-NetworkConnections"
+        Write-Host "11. Get-RunningProcesses"
+        Write-Host "12. Get-BrowserCredentials"
+        Write-Host "13. Get-StartupPrograms"
+        Write-Host "14. Get-ScheduledTasks"
+        Write-Host "`n" -NoNewLine
+
+        $enableInput = Get-ValidUserInput "Enter numbers 1-14 separated by commas" -ValidOptions $validOptions
+        Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
+
+        if ($enableInput) {
+            $enabledFunctions = $enableInput -split ',' | ForEach-Object { $_.Trim() }
+            foreach ($func in $enabledFunctions) {
+                switch ($func) {
+                    "1" { $EnableSystemInfo = $true }
+                    "2" { $EnableUserGroups = $true }
+                    "3" { $EnableUserFolderContents = $true }
+                    "4" { $EnablePowerShellHistory = $true }
+                    "5" { $EnableRecentFiles = $true }
+                    "6" { $EnableInstalledSoftware = $true }
+                    "7" { $EnableProgramFilesContents = $true }
+                    "8" { $EnableKDBXFiles = $true }
+                    "9" { $EnableXAMPPConfigFiles = $true }
+                    "10" { $EnableNetworkConnections = $true }
+                    "11" { $EnableRunningProcesses = $true }
+                    "12" { $EnableBrowserCredentials = $true }
+                    "13" { $EnableStartupPrograms = $true }
+                    "14" { $EnableScheduledTasks = $true }
+                }
+            }
+        }
+    }
+    "3" {
+        Write-Host "`n" -NoNewLine
+        Write-Host "Running Recon with Exclusions... All functions are enabled. Select which ones to disable."
+        Write-Host "Enter numbers to DISABLE (e.g., 1,2,3). Press Enter to keep all enabled."
+        Write-Host "1. Get-SystemInfo"
+        Write-Host "2. Get-UserGroups"
+        Write-Host "3. Get-UserFolderContents"
+        Write-Host "4. Get-PowerShellHistory"
+        Write-Host "5. Get-RecentFiles"
+        Write-Host "6. Get-InstalledSoftware"
+        Write-Host "7. Get-ProgramFilesContents"
+        Write-Host "8. Get-KDBXFiles"
+        Write-Host "9. Get-XAMPPConfigFiles"
+        Write-Host "10. Get-NetworkConnections"
+        Write-Host "11. Get-RunningProcesses"
+        Write-Host "12. Get-BrowserCredentials"
+        Write-Host "13. Get-StartupPrograms"
+        Write-Host "14. Get-ScheduledTasks"
+        Write-Host "`n" -NoNewLine
+        $disableInput = Get-ValidUserInput "Enter numbers 1-14 separated by commas" -ValidOptions $validOptions
+        Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
+
+        if ($disableInput) {
+            $disabledFunctions = $disableInput -split ',' | ForEach-Object { $_.Trim() }
+            foreach ($func in $disabledFunctions) {
+                switch ($func) {
+                    "1" { $EnableSystemInfo = $false }
+                    "2" { $EnableUserGroups = $false }
+                    "3" { $EnableUserFolderContents = $false }
+                    "4" { $EnablePowerShellHistory = $false }
+                    "5" { $EnableRecentFiles = $false }
+                    "6" { $EnableInstalledSoftware = $false }
+                    "7" { $EnableProgramFilesContents = $false }
+                    "8" { $EnableKDBXFiles = $false }
+                    "9" { $EnableXAMPPConfigFiles = $false }
+                    "10" { $EnableNetworkConnections = $false }
+                    "11" { $EnableRunningProcesses = $false }
+                    "12" { $EnableBrowserCredentials = $false }
+                    "13" { $EnableStartupPrograms = $false }
+                    "14" { $EnableScheduledTasks = $false }
+                }
+            }
+        }
+    }
+    default {
+        Write-Host "Invalid input. Exiting script." -ForegroundColor Red
+        exit
+    }
+}
+
 Write-Host "`n" -NoNewLine
 
 # Function to get the version name based on build number
@@ -69,7 +249,6 @@ function Get-SystemInfo {
 
 }
 
-Get-SystemInfo
 
 # Determine if the machine is part of a domain by checking for the Get-ADUser cmdlet
 function Get-UserGroups {
@@ -128,7 +307,6 @@ function Get-UserGroups {
     }
 }
 
-Get-UserGroups
 
 function Get-UserFolderContents {
     Write-Host "`n" -NoNewLine
@@ -169,7 +347,6 @@ function Get-UserFolderContents {
     }
 }
 
-Get-UserFolderContents
 
 function Get-PowerShellHistory {
     Write-Host "`n" -NoNewLine
@@ -246,7 +423,6 @@ function Get-PowerShellHistory {
 }
 
 # Run the function
-Get-PowerShellHistory
 
 function Get-RecentFiles {
     Write-Host "`n" -NoNewLine
@@ -264,7 +440,6 @@ function Get-RecentFiles {
     }
 }
 
-Get-RecentFiles
 
 function Get-InstalledSoftware {
     Write-Host "===================================================" -ForegroundColor Cyan
@@ -294,7 +469,6 @@ function Get-InstalledSoftware {
     }
 }
 
-Get-InstalledSoftware
 
 function Get-ProgramFilesContents {
     Write-Host "===================================================" -ForegroundColor Cyan
@@ -333,9 +507,8 @@ function Get-ProgramFilesContents {
     }
 }
 
-Get-ProgramFilesContents
 
-function Find-KDBXFiles {
+function Get-KDBXFiles {
     Write-Host "`n" -NoNewLine
     Write-Host "`n===================================================" -ForegroundColor Cyan
     Write-Host "                                                   " -BackgroundColor White
@@ -379,9 +552,8 @@ function Find-KDBXFiles {
     }
 }
 
-Find-KDBXFiles
 
-function Find-XAMPPConfigFiles {
+function Get-XAMPPConfigFiles {
     Write-Host "`n" -NoNewLine
     Write-Host "`n===================================================" -ForegroundColor Cyan
     Write-Host "                                                   " -BackgroundColor White
@@ -477,7 +649,6 @@ function Find-XAMPPConfigFiles {
     }
 }
 
-Find-XAMPPConfigFiles
 
 function Get-NetworkConnections {
     Write-Host "`n" -NoNewLine
@@ -542,7 +713,6 @@ function Get-NetworkConnections {
 }
 
 # Run the function
-Get-NetworkConnections
 
 function Get-RunningProcesses {
     Write-Host "`n" -NoNewLine
@@ -579,9 +749,8 @@ function Get-RunningProcesses {
     }
 }
 # Run the function
-Get-RunningProcesses
 
-function Find-BrowserCredentials {
+function Get-BrowserCredentials {
     write-host "`n===================================================" -foregroundcolor cyan
     write-host "                                                   " -backgroundcolor white
     write-host "             Browser Credential Files              " -foregroundcolor darkblue -backgroundcolor white
@@ -622,7 +791,6 @@ function Find-BrowserCredentials {
     }
 }
 
-Find-BrowserCredentials
 
 function Get-StartupPrograms {
     write-host "`n===================================================" -foregroundcolor cyan
@@ -638,7 +806,6 @@ function Get-StartupPrograms {
     }
 }
 
-Get-StartupPrograms
 
 function Get-ScheduledTasks {
     write-host "`n===================================================" -foregroundcolor cyan
@@ -654,4 +821,19 @@ function Get-ScheduledTasks {
     }
 }
 
-Get-ScheduledTasks
+# Call enabled functions silently
+if ($EnableSystemInfo) { Get-SystemInfo }
+if ($EnableUserGroups) { Get-UserGroups }
+if ($EnableUserFolderContents) { Get-UserFolderContents }
+if ($EnablePowerShellHistory) { Get-PowerShellHistory }
+if ($EnableRecentFiles) { Get-RecentFiles }
+if ($EnableInstalledSoftware) { Get-InstalledSoftware }
+if ($EnableProgramFilesContents) { Get-ProgramFilesContents }
+if ($EnableKDBXFiles) { Get-KDBXFiles }
+if ($EnableXAMPPConfigFiles) { Get-XAMPPConfigFiles }
+if ($EnableNetworkConnections) { Get-NetworkConnections }
+if ($EnableRunningProcesses) { Get-RunningProcesses }
+if ($EnableBrowserCredentials) { Get-BrowserCredentials }
+if ($EnableStartupPrograms) { Get-StartupPrograms }
+if ($EnableScheduledTasks) { Get-ScheduledTasks }
+write-host "`n" -NoNewLine
