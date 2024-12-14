@@ -130,9 +130,144 @@ function Get-UserGroups {
 
 Get-UserGroups
 
-function Get-InstalledSoftware {
+function Get-UserFolderContents {
     Write-Host "`n" -NoNewLine
     Write-Host "`n===================================================" -ForegroundColor Cyan
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "                User Folder Contents               " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
+    $basePath = "C:\Users\"
+
+    # Get all user folders in C:\Users\
+    $userFolders = Get-ChildItem -Path $basePath -Directory -ErrorAction SilentlyContinue
+
+    foreach ($userFolder in $userFolders) {
+        # Get the known subfolders (Documents, Desktop, Pictures, etc.)
+        $subFolders = Get-ChildItem -Path $userFolder.FullName -Directory -ErrorAction SilentlyContinue
+
+        foreach ($subFolder in $subFolders) {
+            # Check if there are files within the subfolder
+            $files = Get-ChildItem -Path $subFolder.FullName -Recurse -File -ErrorAction SilentlyContinue
+
+            if ($files) {
+                Write-Host "`n" -NoNewline
+                # Highlight the folder name (e.g., Documents, Desktop)
+                Write-Host "[+] $($userFolder.Name) - $($subFolder.Name)" -ForegroundColor Cyan
+
+                foreach ($file in $files) {
+                    # Highlight file types in yellow
+                    if ($file.Extension -match "\.txt$|\.pdf$|\.xls$|\.xlsx$|\.doc$|\.docx$|\.ini$") {
+                        Write-Host $file.FullName -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host $file.FullName -ForegroundColor White
+                    }
+                }
+            }
+        }
+    }
+}
+
+Get-UserFolderContents
+
+function Get-PowerShellHistory {
+    Write-Host "`n" -NoNewLine
+    write-host "`n===================================================" -foregroundcolor cyan
+    write-host "                                                   " -backgroundcolor white
+    write-host "                  PowerShell History               " -foregroundcolor darkblue -backgroundcolor white
+    write-host "                                                   " -backgroundcolor white
+    write-host "===================================================" -foregroundcolor cyan
+    
+    # Define the whitelist of commands to exclude
+    $whitelist = @('cls', 'exit', 'ls', 'dir', 'whoami', 'clear', 'Clear-History')
+
+    # Display the command history
+    try {
+        $history = Get-History
+        
+        # Remove duplicate commands based on CommandLine
+        $uniqueHistory = $history | Sort-Object CommandLine -Unique
+        
+        # Filter out whitelisted commands
+        $filteredHistory = $uniqueHistory | Where-Object { $whitelist -notcontains $_.CommandLine.Trim() }
+        
+        if ($filteredHistory.Count -eq 0) {
+            Write-Host "No relevant history available." -ForegroundColor Red
+        } else {
+            $filteredHistory | Format-Table -Property Id, CommandLine -AutoSize
+        }
+    } catch {
+        Write-Host "Unable to access command history." -ForegroundColor Red
+    }
+
+    # Get the PSReadline history file path(s) and display them
+    try {
+        $historyPaths = (Get-PSReadlineOption).HistorySavePath
+
+        if ($historyPaths -is [System.Array]) {
+            $historyPaths | ForEach-Object {
+                Write-Host "`n[+] PowerShell History File Path: " -ForegroundColor Cyan
+                Write-Host "$_" -ForegroundColor Yellow
+
+                # Read and process the history file
+                if (Test-Path $_) {
+                    $historyFileContent = Get-Content $_ | Sort-Object -Unique
+
+                    # Filter out whitelisted commands from the history file content
+                    $filteredHistoryFileContent = $historyFileContent | Where-Object { $whitelist -notcontains $_.Trim() }
+
+                    Write-Host "Output: " -ForegroundColor White
+                    $filteredHistoryFileContent | ForEach-Object { Write-Host $_ -ForegroundColor White }
+                } else {
+                    Write-Host "History file not found: $_" -ForegroundColor Red
+                }
+            }
+        } else {
+            Write-Host "`n[+] PowerShell History File Path: " -ForegroundColor Cyan
+            Write-Host $historyPaths -ForegroundColor Yellow
+
+            # Read and process the history file
+            if (Test-Path $historyPaths) {
+                $historyFileContent = Get-Content $historyPaths | Sort-Object -Unique
+
+                # Filter out whitelisted commands from the history file content
+                $filteredHistoryFileContent = $historyFileContent | Where-Object { $whitelist -notcontains $_.Trim() }
+
+                Write-Host "Output: " -ForegroundColor White
+                $filteredHistoryFileContent | ForEach-Object { Write-Host $_ -ForegroundColor White }
+            } else {
+                Write-Host "History file not found: $historyPaths" -ForegroundColor Red
+            }
+        }
+    } catch {
+        Write-Host "Unable to access PowerShell history file." -ForegroundColor Red
+    }
+}
+
+# Run the function
+Get-PowerShellHistory
+
+function Get-RecentFiles {
+    Write-Host "`n" -NoNewLine
+    write-host "`n===================================================" -foregroundcolor cyan
+    write-host "                                                   " -backgroundcolor white
+    write-host "               Recent Accessed Files               " -foregroundcolor darkblue -backgroundcolor white
+    write-host "                                                   " -backgroundcolor white
+    write-host "===================================================" -foregroundcolor cyan
+    
+    $recentPath = "$env:APPDATA\\Microsoft\\Windows\\Recent"
+    try {
+        Get-ChildItem -Path $recentPath -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object Name, LastWriteTime | Format-Table -AutoSize
+    } catch {
+        Write-Host "Unable to access recent files." -ForegroundColor Red
+    }
+}
+
+Get-RecentFiles
+
+function Get-InstalledSoftware {
+    Write-Host "===================================================" -ForegroundColor Cyan
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "                Installed Software                 " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
@@ -199,47 +334,6 @@ function Get-ProgramFilesContents {
 }
 
 Get-ProgramFilesContents
-
-function Get-UserFolderContents {
-    Write-Host "`n" -NoNewLine
-    Write-Host "`n===================================================" -ForegroundColor Cyan
-    Write-Host "                                                   " -BackgroundColor White
-    Write-Host "                User Folder Contents               " -ForegroundColor DarkBlue -BackgroundColor White
-    Write-Host "                                                   " -BackgroundColor White
-    Write-Host "===================================================" -ForegroundColor Cyan
-    $basePath = "C:\Users\"
-
-    # Get all user folders in C:\Users\
-    $userFolders = Get-ChildItem -Path $basePath -Directory -ErrorAction SilentlyContinue
-
-    foreach ($userFolder in $userFolders) {
-        # Get the known subfolders (Documents, Desktop, Pictures, etc.)
-        $subFolders = Get-ChildItem -Path $userFolder.FullName -Directory -ErrorAction SilentlyContinue
-
-        foreach ($subFolder in $subFolders) {
-            # Check if there are files within the subfolder
-            $files = Get-ChildItem -Path $subFolder.FullName -Recurse -File -ErrorAction SilentlyContinue
-
-            if ($files) {
-                Write-Host "`n" -NoNewline
-                # Highlight the folder name (e.g., Documents, Desktop)
-                Write-Host "[+] $($userFolder.Name) - $($subFolder.Name)" -ForegroundColor Cyan
-
-                foreach ($file in $files) {
-                    # Highlight file types in yellow
-                    if ($file.Extension -match "\.txt$|\.pdf$|\.xls$|\.xlsx$|\.doc$|\.docx$") {
-                        Write-Host $file.FullName -ForegroundColor Yellow
-                    }
-                    else {
-                        Write-Host $file.FullName -ForegroundColor White
-                    }
-                }
-            }
-        }
-    }
-}
-
-Get-UserFolderContents
 
 function Find-KDBXFiles {
     Write-Host "`n" -NoNewLine
@@ -529,24 +623,6 @@ function Find-BrowserCredentials {
 }
 
 Find-BrowserCredentials
-
-function Get-RecentFiles {
-    Write-Host "`n" -NoNewLine
-    write-host "`n===================================================" -foregroundcolor cyan
-    write-host "                                                   " -backgroundcolor white
-    write-host "               Recent Accessed Files               " -foregroundcolor darkblue -backgroundcolor white
-    write-host "                                                   " -backgroundcolor white
-    write-host "===================================================" -foregroundcolor cyan
-    
-    $recentPath = "$env:APPDATA\\Microsoft\\Windows\\Recent"
-    try {
-        Get-ChildItem -Path $recentPath -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object Name, LastWriteTime | Format-Table -AutoSize
-    } catch {
-        Write-Host "Unable to access recent files." -ForegroundColor Red
-    }
-}
-
-Get-RecentFiles
 
 function Get-StartupPrograms {
     write-host "`n===================================================" -foregroundcolor cyan
