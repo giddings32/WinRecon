@@ -4,6 +4,7 @@ $EnableUserGroups = $true
 $EnableUserFolderContents = $true
 $EnablePowerShellHistory = $true
 $EnableEventViewerCredentials = $true
+$EnableDPAPIMasterKeys = $true
 $EnableRecentFiles = $true
 $EnableInstalledSoftware = $true
 $EnableProgramFilesContents = $true
@@ -39,7 +40,7 @@ function Get-ValidUserInput {
 
     # Ensure valid options are provided, or default to numbers 1-15
     if (-not $ValidOptions) {
-        $ValidOptions = 1..15
+        $ValidOptions = 1..16
     }
 
     do {
@@ -81,6 +82,7 @@ switch ($ReconMode) {
         $EnableUserFolderContents = $false
         $EnablePowerShellHistory = $false
         $EnableEventViewerCredentials = $false
+	$EnableDPAPIMasterKeys = $false
         $EnableRecentFiles = $false
         $EnableInstalledSoftware = $false
         $EnableProgramFilesContents = $false
@@ -100,19 +102,20 @@ switch ($ReconMode) {
         Write-Host " 3. Get-UserFolderContents"
         Write-Host " 4. Get-PowerShellHistory"
         Write-Host " 5. Get-EventViewerCredentials"
-        Write-Host " 6. Get-RecentFiles"
-        Write-Host " 7. Get-InstalledSoftware"
-        Write-Host " 8. Get-ProgramFilesContents"
-        Write-Host " 9. Get-KDBXFiles"
-        Write-Host "10. Get-XAMPPConfigFiles"
-        Write-Host "11. Get-NetworkConnections"
-        Write-Host "12. Get-RunningProcesses"
-        Write-Host "13. Get-BrowserCredentials"
-        Write-Host "14. Get-StartupPrograms"
-        Write-Host "15. Get-ScheduledTasks"
+	Write-Host " 6. Get-DPAPIMasterKeys"
+        Write-Host " 7. Get-RecentFiles"
+        Write-Host " 8. Get-InstalledSoftware"
+        Write-Host " 9. Get-ProgramFilesContents"
+        Write-Host "10. Get-KDBXFiles"
+        Write-Host "11. Get-XAMPPConfigFiles"
+        Write-Host "12. Get-NetworkConnections"
+        Write-Host "13. Get-RunningProcesses"
+        Write-Host "14. Get-BrowserCredentials"
+        Write-Host "15. Get-StartupPrograms"
+        Write-Host "16. Get-ScheduledTasks"
         Write-Host "`n" -NoNewLine
 
-        $enableInput = Get-ValidUserInput "Enter numbers 1-15 separated by commas" -ValidOptions $validOptions
+        $enableInput = Get-ValidUserInput "Enter numbers 1-16 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
 
         if ($enableInput) {
@@ -124,16 +127,17 @@ switch ($ReconMode) {
                     "3" { $EnableUserFolderContents = $true }
                     "4" { $EnablePowerShellHistory = $true }
                     "5" { $EnableEventViewerCredentials = $true }
-                    "6" { $EnableRecentFiles = $true }
-                    "7" { $EnableInstalledSoftware = $true }
-                    "8" { $EnableProgramFilesContents = $true }
-                    "9" { $EnableKDBXFiles = $true }
-                    "10" { $EnableXAMPPConfigFiles = $true }
-                    "11" { $EnableNetworkConnections = $true }
-                    "12" { $EnableRunningProcesses = $true }
-                    "13" { $EnableBrowserCredentials = $true }
-                    "14" { $EnableStartupPrograms = $true }
-                    "15" { $EnableScheduledTasks = $true }
+		    "6" { $EnableDPAPIMasterKeys = $true }
+                    "7" { $EnableRecentFiles = $true }
+                    "8" { $EnableInstalledSoftware = $true }
+                    "9" { $EnableProgramFilesContents = $true }
+                    "10" { $EnableKDBXFiles = $true }
+                    "11" { $EnableXAMPPConfigFiles = $true }
+                    "12" { $EnableNetworkConnections = $true }
+                    "13" { $EnableRunningProcesses = $true }
+                    "14" { $EnableBrowserCredentials = $true }
+                    "15" { $EnableStartupPrograms = $true }
+                    "16" { $EnableScheduledTasks = $true }
                 }
             }
         }
@@ -147,18 +151,19 @@ switch ($ReconMode) {
         Write-Host " 3. Get-UserFolderContents"
         Write-Host " 4. Get-PowerShellHistory"
         Write-Host " 5. Get-EventViewerCredentials"
-        Write-Host " 6. Get-RecentFiles"
-        Write-Host " 7. Get-InstalledSoftware"
-        Write-Host " 8. Get-ProgramFilesContents"
-        Write-Host " 9. Get-KDBXFiles"
-        Write-Host "10. Get-XAMPPConfigFiles"
-        Write-Host "11. Get-NetworkConnections"
-        Write-Host "12. Get-RunningProcesses"
-        Write-Host "13. Get-BrowserCredentials"
-        Write-Host "14. Get-StartupPrograms"
-        Write-Host "15. Get-ScheduledTasks"
+	Write-Host " 6. Get-DPAPIMasterKeys"
+        Write-Host " 7. Get-RecentFiles"
+        Write-Host " 8. Get-InstalledSoftware"
+        Write-Host " 9. Get-ProgramFilesContents"
+        Write-Host "10. Get-KDBXFiles"
+        Write-Host "11. Get-XAMPPConfigFiles"
+        Write-Host "12. Get-NetworkConnections"
+        Write-Host "13. Get-RunningProcesses"
+        Write-Host "14. Get-BrowserCredentials"
+        Write-Host "15. Get-StartupPrograms"
+        Write-Host "16. Get-ScheduledTasks"
         Write-Host "`n" -NoNewLine
-        $disableInput = Get-ValidUserInput "Enter numbers 1-15 separated by commas" -ValidOptions $validOptions
+        $disableInput = Get-ValidUserInput "Enter numbers 1-16 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
 
         if ($disableInput) {
@@ -170,16 +175,17 @@ switch ($ReconMode) {
                     "3" { $EnableUserFolderContents = $false }
                     "4" { $EnablePowerShellHistory = $false }
                     "5" { $EnableEventViewerCredentials = $true }
-                    "6" { $EnableRecentFiles = $false }
-                    "7" { $EnableInstalledSoftware = $false }
-                    "8" { $EnableProgramFilesContents = $false }
-                    "9" { $EnableKDBXFiles = $false }
-                    "10" { $EnableXAMPPConfigFiles = $false }
-                    "11" { $EnableNetworkConnections = $false }
-                    "12" { $EnableRunningProcesses = $false }
-                    "13" { $EnableBrowserCredentials = $false }
-                    "14" { $EnableStartupPrograms = $false }
-                    "15" { $EnableScheduledTasks = $false }
+	            "6" { $EnableDPAPIMasterKeys = $true }
+                    "7" { $EnableRecentFiles = $false }
+                    "8" { $EnableInstalledSoftware = $false }
+                    "9" { $EnableProgramFilesContents = $false }
+                    "10" { $EnableKDBXFiles = $false }
+                    "11" { $EnableXAMPPConfigFiles = $false }
+                    "12" { $EnableNetworkConnections = $false }
+                    "13" { $EnableRunningProcesses = $false }
+                    "14" { $EnableBrowserCredentials = $false }
+                    "15" { $EnableStartupPrograms = $false }
+                    "16" { $EnableScheduledTasks = $false }
                 }
             }
         }
@@ -370,24 +376,38 @@ function Get-PowerShellHistory {
     # Define the whitelist of commands to exclude
     $whitelist = @('cls', 'exit', 'ls', 'dir', 'whoami', 'clear', 'Clear-History')
 
-    # Define keywords to highlight
+    # Define keywords to highlight (case-insensitive)
     $highlightKeywords = @('user.txt', 'users.txt', 'password', 'pass', 'Enter-PSSession', 'Secret', 'Start-Transcript')
 
-    # Function to check and highlight lines containing keywords
+    # Function to check and highlight only the keywords within lines
     function Highlight-Line {
         param ($line)
-        # Exclude lines with 'C:\Users' when checking for 'user'
-        if ($line -match 'user' -and $line -notmatch 'C:\\Users') {
-            Write-Host $line -ForegroundColor Yellow
+        $highlighted = $false
+        
+        # Process each keyword and replace its match with highlighted output
+        foreach ($keyword in $highlightKeywords) {
+            if ($line -match "(?i)\b$keyword\b") {
+                $highlighted = $true
+                $splitParts = $line -split "(?i)($keyword)"  # Split the line into parts around the keyword
+                foreach ($part in $splitParts) {
+                    if ($part -match "(?i)$keyword") {
+                        Write-Host $part -ForegroundColor Yellow -NoNewline  # Highlight keyword
+                    } else {
+                        Write-Host $part -ForegroundColor White -NoNewline  # Normal text
+                    }
+                }
+                Write-Host ""  # Move to the next line
+                break
+            }
         }
-        elseif ($highlightKeywords | Where-Object { $line -match $_ }) {
-            Write-Host $line -ForegroundColor Yellow
-        } else {
+
+        # If no keywords matched, print the line normally
+        if (-not $highlighted) {
             Write-Host $line -ForegroundColor White
         }
     }
 
-    # Display the command history
+    # Display the live command history
     try {
         $history = Get-History
         
@@ -458,32 +478,207 @@ function Get-EventViewerCredentials {
     Write-Host "              Event-Viewer Credentials             " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
 
-    # Search for credential-related keywords in PowerShell Operational logs
+    # Keywords to search for
+    $keywords = "(?i)(password|secret|authorization|token|basic|base64|credential)"
+
+    # Function to print lines with matched keyword highlighted
+    function Highlight-Keyword {
+        param ($line, $keywords)
+        # Find all matches of the keywords
+        $matches = [regex]::Matches($line, $keywords)
+        $currentIndex = 0
+
+        foreach ($match in $matches) {
+            # Print part before the match in white
+            Write-Host -NoNewline ($line.Substring($currentIndex, $match.Index - $currentIndex)) -ForegroundColor White
+
+            # Print the matched keyword in yellow
+            Write-Host -NoNewline $match.Value -ForegroundColor Yellow
+
+            # Move the index forward
+            $currentIndex = $match.Index + $match.Length
+        }
+
+        # Print the remaining part of the line in white
+        Write-Host $line.Substring($currentIndex) -ForegroundColor White
+    }
+
+    # -------------------------
+    # PowerShell Operational Logs
+    # -------------------------
+    Write-Host "`n[+] Searching PowerShell Operational Logs:" -ForegroundColor Cyan
     try {
-        $events = Get-WinEvent -LogName 'Microsoft-Windows-PowerShell/Operational' -ErrorAction SilentlyContinue |
-                  Where-Object { $_.Message -match "(?i)(password|secret|authorization|token|basic|base64)" }
+        $psEvents = Get-WinEvent -LogName 'Microsoft-Windows-PowerShell/Operational' -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Message -match $keywords }
 
-        if ($events) {
-            Write-Host "`n[+] Found Potential Credentials in PowerShell Logs:" -ForegroundColor Cyan
-
-            $events | ForEach-Object {
-                # Extract and clean only the lines containing sensitive keywords
-                $filteredLines = $_.Message -split "`n" | Where-Object { 
-                    $_ -match "(?i)(password|secret|authorization|token|basic|base64)" 
+        if ($psEvents) {
+            $psEvents | ForEach-Object {
+                # Filter and print only relevant lines
+                $_.Message -split "`n" | Where-Object { $_ -match $keywords } | ForEach-Object {
+                    Highlight-Keyword $_ $keywords
                 }
-
-                # Print each filtered line, removing unnecessary whitespace
-                $filteredLines | ForEach-Object {
-                    $cleanedLine = $_ -replace '^\s+', ''  # Remove leading whitespace
-                    Write-Host $cleanedLine -ForegroundColor Yellow
-                }
-                Write-Host ""  # Blank line between entries for readability
+                Write-Host ""  # Blank line for readability
             }
         } else {
-            Write-Host "No credential-related events found in Event Viewer." -ForegroundColor Green
+            Write-Host "No credential-related events found in PowerShell Operational logs." -ForegroundColor Green
         }
     } catch {
-        Write-Host "Unable to access Event Viewer logs. Check permissions." -ForegroundColor Red
+        Write-Host "Unable to access PowerShell Operational logs. Check permissions." -ForegroundColor Red
+    }
+
+    # -------------------------
+    # Security Logs (Process Creation Events)
+    # -------------------------
+    Write-Host "`n[+] Searching Security Logs for Process Creation Events (4688):" -ForegroundColor Cyan
+    try {
+        $securityEvents = Get-WinEvent -LogName Security -FilterXPath "*[System[(EventID=4688)]]" -ErrorAction SilentlyContinue |
+                          Where-Object { $_.Message -match $keywords }
+
+        if ($securityEvents) {
+            $securityEvents | ForEach-Object {
+                # Filter and print only relevant lines
+                $_.Message -split "`n" | Where-Object { $_ -match $keywords } | ForEach-Object {
+                    Highlight-Keyword $_ $keywords
+                }
+                Write-Host ""  # Blank line for readability
+            }
+        } else {
+            Write-Host "No credential-related data found in Security logs." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Unable to access Security logs. Check permissions." -ForegroundColor Red
+    }
+
+    # -------------------------
+    # Application Logs
+    # -------------------------
+    Write-Host "`n[+] Searching Application Logs:" -ForegroundColor Cyan
+    try {
+        $appEvents = Get-WinEvent -LogName Application -ErrorAction SilentlyContinue |
+                     Where-Object { $_.Message -match $keywords }
+
+        if ($appEvents) {
+            $appEvents | ForEach-Object {
+                # Filter and print only relevant lines
+                $_.Message -split "`n" | Where-Object { $_ -match $keywords } | ForEach-Object {
+                    Highlight-Keyword $_ $keywords
+                }
+                Write-Host ""  # Blank line for readability
+            }
+        } else {
+            Write-Host "No credential-related data found in Application logs." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Unable to access Application logs. Check permissions." -ForegroundColor Red
+    }
+
+    # -------------------------
+    # Task Scheduler Logs
+    # -------------------------
+    Write-Host "`n[+] Searching Task Scheduler Logs:" -ForegroundColor Cyan
+    try {
+        $taskEvents = Get-WinEvent -LogName 'Microsoft-Windows-TaskScheduler/Operational' -ErrorAction SilentlyContinue |
+                      Where-Object { $_.Message -match $keywords }
+
+        if ($taskEvents) {
+            $taskEvents | ForEach-Object {
+                # Filter and print only relevant lines
+                $_.Message -split "`n" | Where-Object { $_ -match $keywords } | ForEach-Object {
+                    Highlight-Keyword $_ $keywords
+                }
+                Write-Host ""  # Blank line for readability
+            }
+        } else {
+            Write-Host "No credential-related data found in Task Scheduler logs." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Unable to access Task Scheduler logs. Check permissions." -ForegroundColor Red
+    }
+}
+
+function Get-DPAPIMasterKeys {
+    Write-Host "`n==================================================="
+    Write-Host "                DPAPI Credentials & Keys           "
+    Write-Host "==================================================="
+    Write-Host "[Ref]: https://github.com/HackTricks-wiki/hacktricks/blob/master/windows-hardening/windows-local-privilege-escalation/dpapi-extracting-passwords.md"
+
+    # Base directory and subpaths to search for DPAPI-related files
+    $userBasePath = "C:\Users"
+    $protectPaths = @(
+        "AppData\Roaming\Microsoft\Protect",
+        "AppData\Local\Microsoft\Protect"
+    )
+    $credentialPaths = @(
+        "AppData\Roaming\Microsoft\Credentials",
+        "AppData\Local\Microsoft\Credentials"
+    )
+
+    # Pattern for valid Master Keys
+    $keyPattern = '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
+    $foundData = $false
+
+    try {
+        # Get all user directories in C:\Users
+        $userDirectories = Get-ChildItem -Path $userBasePath -Directory -ErrorAction SilentlyContinue
+
+        foreach ($userDir in $userDirectories) {
+            # Search for Vault Credentials
+            foreach ($credPath in $credentialPaths) {
+                $vaultPath = Join-Path -Path $userDir.FullName -ChildPath $credPath
+                if (Test-Path $vaultPath -ErrorAction SilentlyContinue) {
+                    $credFiles = Get-ChildItem -Path $vaultPath -Recurse -File -Hidden -ErrorAction SilentlyContinue
+
+                    if ($credFiles) {
+                        $foundData = $true
+                        Write-Host "`n[+] Vault Credentials Found in: $vaultPath"
+                        foreach ($file in $credFiles) {
+                            Write-Output "dpapi::cred /in:$($file.FullName)"
+                        }
+                    }
+                }
+            }
+
+            # Search for Master Keys in Protect directories
+            foreach ($subPath in $protectPaths) {
+                $protectPath = Join-Path -Path $userDir.FullName -ChildPath $subPath
+                if (Test-Path $protectPath -ErrorAction SilentlyContinue) {
+                    $masterKeys = Get-ChildItem -Path $protectPath -Recurse -File -Hidden -ErrorAction SilentlyContinue
+
+                    if ($masterKeys) {
+                        # Filter only valid master keys
+                        $validMasterKeys = $masterKeys | Where-Object { $_.Name -match $keyPattern }
+
+                        if ($validMasterKeys) {
+                            $foundData = $true
+                            Write-Host "`n[+] DPAPI Master Keys Found in: $protectPath"
+                            foreach ($key in $validMasterKeys) {
+                                Write-Output "/masterkey:$($key.FullName)"
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Search for CREDHIST files
+            $credHistPath = Join-Path -Path $userDir.FullName -ChildPath "AppData\Roaming\Microsoft\Protect\CREDHIST"
+            if (Test-Path $credHistPath -ErrorAction SilentlyContinue) {
+                $foundData = $true
+                Write-Host "`n[+] CREDHIST File Found:"
+                Write-Output "$credHistPath"
+            }
+        }
+
+        # Optional: Vault Credentials Command
+        # Uncomment this if you want to run vaultcmd and list credentials.
+        # Write-Host "`n[+] Running vaultcmd to list credentials:"
+        # vaultcmd /listcreds:"Windows Credentials" /all | Out-Host
+
+        # If nothing was found
+        if (-not $foundData) {
+            Write-Host "`nNo DPAPI Vault Credentials or Master Keys found."
+        }
+    } catch {
+        Write-Host "An error occurred while searching for DPAPI artifacts: $_"
     }
 }
 
@@ -502,7 +697,6 @@ function Get-RecentFiles {
         Write-Host "Unable to access recent files." -ForegroundColor Red
     }
 }
-
 
 function Get-InstalledSoftware {
     Write-Host "===================================================" -ForegroundColor Cyan
@@ -890,6 +1084,7 @@ if ($EnableUserGroups) { Get-UserGroups }
 if ($EnableUserFolderContents) { Get-UserFolderContents }
 if ($EnablePowerShellHistory) { Get-PowerShellHistory }
 if ($EnableEventViewerCredentials) { Get-EventViewerCredentials }
+if ($EnableDPAPIMasterKeys) { Get-DPAPIMasterKeys }
 if ($EnableRecentFiles) { Get-RecentFiles }
 if ($EnableInstalledSoftware) { Get-InstalledSoftware }
 if ($EnableProgramFilesContents) { Get-ProgramFilesContents }
