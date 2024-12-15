@@ -3,6 +3,7 @@ $EnableSystemInfo = $true
 $EnableUserGroups = $true
 $EnableUserFolderContents = $true
 $EnablePowerShellHistory = $true
+$EnableEventViewerCredentials = $true
 $EnableRecentFiles = $true
 $EnableInstalledSoftware = $true
 $EnableProgramFilesContents = $true
@@ -35,6 +36,12 @@ function Get-ValidUserInput {
         [string]$PromptMessage,
         [array]$ValidOptions
     )
+
+    # Ensure valid options are provided, or default to numbers 1-15
+    if (-not $ValidOptions) {
+        $ValidOptions = 1..15
+    }
+
     do {
         # Prompt user for input
         $userInput = Read-Host $PromptMessage
@@ -73,6 +80,7 @@ switch ($ReconMode) {
         $EnableUserGroups = $false
         $EnableUserFolderContents = $false
         $EnablePowerShellHistory = $false
+        $EnableEventViewerCredentials = $false
         $EnableRecentFiles = $false
         $EnableInstalledSoftware = $false
         $EnableProgramFilesContents = $false
@@ -87,23 +95,24 @@ switch ($ReconMode) {
         # Ask user which functions to enable
         Write-Host "`n" -NoNewLine
         Write-Host "Select the functions to ENABLE:"
-        Write-Host "1. Get-SystemInfo"
-        Write-Host "2. Get-UserGroups"
-        Write-Host "3. Get-UserFolderContents"
-        Write-Host "4. Get-PowerShellHistory"
-        Write-Host "5. Get-RecentFiles"
-        Write-Host "6. Get-InstalledSoftware"
-        Write-Host "7. Get-ProgramFilesContents"
-        Write-Host "8. Get-KDBXFiles"
-        Write-Host "9. Get-XAMPPConfigFiles"
-        Write-Host "10. Get-NetworkConnections"
-        Write-Host "11. Get-RunningProcesses"
-        Write-Host "12. Get-BrowserCredentials"
-        Write-Host "13. Get-StartupPrograms"
-        Write-Host "14. Get-ScheduledTasks"
+        Write-Host " 1. Get-SystemInfo"
+        Write-Host " 2. Get-UserGroups"
+        Write-Host " 3. Get-UserFolderContents"
+        Write-Host " 4. Get-PowerShellHistory"
+        Write-Host " 5. Get-EventViewerCredentials"
+        Write-Host " 6. Get-RecentFiles"
+        Write-Host " 7. Get-InstalledSoftware"
+        Write-Host " 8. Get-ProgramFilesContents"
+        Write-Host " 9. Get-KDBXFiles"
+        Write-Host "10. Get-XAMPPConfigFiles"
+        Write-Host "11. Get-NetworkConnections"
+        Write-Host "12. Get-RunningProcesses"
+        Write-Host "13. Get-BrowserCredentials"
+        Write-Host "14. Get-StartupPrograms"
+        Write-Host "15. Get-ScheduledTasks"
         Write-Host "`n" -NoNewLine
 
-        $enableInput = Get-ValidUserInput "Enter numbers 1-14 separated by commas" -ValidOptions $validOptions
+        $enableInput = Get-ValidUserInput "Enter numbers 1-15 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
 
         if ($enableInput) {
@@ -114,16 +123,17 @@ switch ($ReconMode) {
                     "2" { $EnableUserGroups = $true }
                     "3" { $EnableUserFolderContents = $true }
                     "4" { $EnablePowerShellHistory = $true }
-                    "5" { $EnableRecentFiles = $true }
-                    "6" { $EnableInstalledSoftware = $true }
-                    "7" { $EnableProgramFilesContents = $true }
-                    "8" { $EnableKDBXFiles = $true }
-                    "9" { $EnableXAMPPConfigFiles = $true }
-                    "10" { $EnableNetworkConnections = $true }
-                    "11" { $EnableRunningProcesses = $true }
-                    "12" { $EnableBrowserCredentials = $true }
-                    "13" { $EnableStartupPrograms = $true }
-                    "14" { $EnableScheduledTasks = $true }
+                    "5" { $EnableEventViewerCredentials = $true }
+                    "6" { $EnableRecentFiles = $true }
+                    "7" { $EnableInstalledSoftware = $true }
+                    "8" { $EnableProgramFilesContents = $true }
+                    "9" { $EnableKDBXFiles = $true }
+                    "10" { $EnableXAMPPConfigFiles = $true }
+                    "11" { $EnableNetworkConnections = $true }
+                    "12" { $EnableRunningProcesses = $true }
+                    "13" { $EnableBrowserCredentials = $true }
+                    "14" { $EnableStartupPrograms = $true }
+                    "15" { $EnableScheduledTasks = $true }
                 }
             }
         }
@@ -132,22 +142,23 @@ switch ($ReconMode) {
         Write-Host "`n" -NoNewLine
         Write-Host "Running Recon with Exclusions... All functions are enabled. Select which ones to disable."
         Write-Host "Enter numbers to DISABLE (e.g., 1,2,3). Press Enter to keep all enabled."
-        Write-Host "1. Get-SystemInfo"
-        Write-Host "2. Get-UserGroups"
-        Write-Host "3. Get-UserFolderContents"
-        Write-Host "4. Get-PowerShellHistory"
-        Write-Host "5. Get-RecentFiles"
-        Write-Host "6. Get-InstalledSoftware"
-        Write-Host "7. Get-ProgramFilesContents"
-        Write-Host "8. Get-KDBXFiles"
-        Write-Host "9. Get-XAMPPConfigFiles"
-        Write-Host "10. Get-NetworkConnections"
-        Write-Host "11. Get-RunningProcesses"
-        Write-Host "12. Get-BrowserCredentials"
-        Write-Host "13. Get-StartupPrograms"
-        Write-Host "14. Get-ScheduledTasks"
+        Write-Host " 1. Get-SystemInfo"
+        Write-Host " 2. Get-UserGroups"
+        Write-Host " 3. Get-UserFolderContents"
+        Write-Host " 4. Get-PowerShellHistory"
+        Write-Host " 5. Get-EventViewerCredentials"
+        Write-Host " 6. Get-RecentFiles"
+        Write-Host " 7. Get-InstalledSoftware"
+        Write-Host " 8. Get-ProgramFilesContents"
+        Write-Host " 9. Get-KDBXFiles"
+        Write-Host "10. Get-XAMPPConfigFiles"
+        Write-Host "11. Get-NetworkConnections"
+        Write-Host "12. Get-RunningProcesses"
+        Write-Host "13. Get-BrowserCredentials"
+        Write-Host "14. Get-StartupPrograms"
+        Write-Host "15. Get-ScheduledTasks"
         Write-Host "`n" -NoNewLine
-        $disableInput = Get-ValidUserInput "Enter numbers 1-14 separated by commas" -ValidOptions $validOptions
+        $disableInput = Get-ValidUserInput "Enter numbers 1-15 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
 
         if ($disableInput) {
@@ -158,16 +169,17 @@ switch ($ReconMode) {
                     "2" { $EnableUserGroups = $false }
                     "3" { $EnableUserFolderContents = $false }
                     "4" { $EnablePowerShellHistory = $false }
-                    "5" { $EnableRecentFiles = $false }
-                    "6" { $EnableInstalledSoftware = $false }
-                    "7" { $EnableProgramFilesContents = $false }
-                    "8" { $EnableKDBXFiles = $false }
-                    "9" { $EnableXAMPPConfigFiles = $false }
-                    "10" { $EnableNetworkConnections = $false }
-                    "11" { $EnableRunningProcesses = $false }
-                    "12" { $EnableBrowserCredentials = $false }
-                    "13" { $EnableStartupPrograms = $false }
-                    "14" { $EnableScheduledTasks = $false }
+                    "5" { $EnableEventViewerCredentials = $true }
+                    "6" { $EnableRecentFiles = $false }
+                    "7" { $EnableInstalledSoftware = $false }
+                    "8" { $EnableProgramFilesContents = $false }
+                    "9" { $EnableKDBXFiles = $false }
+                    "10" { $EnableXAMPPConfigFiles = $false }
+                    "11" { $EnableNetworkConnections = $false }
+                    "12" { $EnableRunningProcesses = $false }
+                    "13" { $EnableBrowserCredentials = $false }
+                    "14" { $EnableStartupPrograms = $false }
+                    "15" { $EnableScheduledTasks = $false }
                 }
             }
         }
@@ -347,17 +359,33 @@ function Get-UserFolderContents {
     }
 }
 
-
 function Get-PowerShellHistory {
     Write-Host "`n" -NoNewLine
-    write-host "`n===================================================" -foregroundcolor cyan
-    write-host "                                                   " -backgroundcolor white
-    write-host "                  PowerShell History               " -foregroundcolor darkblue -backgroundcolor white
-    write-host "                                                   " -backgroundcolor white
-    write-host "===================================================" -foregroundcolor cyan
+    Write-Host "`n===================================================" -ForegroundColor Cyan
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "                  PowerShell History               " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
     
     # Define the whitelist of commands to exclude
     $whitelist = @('cls', 'exit', 'ls', 'dir', 'whoami', 'clear', 'Clear-History')
+
+    # Define keywords to highlight
+    $highlightKeywords = @('user.txt', 'users.txt', 'password', 'pass', 'Enter-PSSession', 'Secret', 'Start-Transcript')
+
+    # Function to check and highlight lines containing keywords
+    function Highlight-Line {
+        param ($line)
+        # Exclude lines with 'C:\Users' when checking for 'user'
+        if ($line -match 'user' -and $line -notmatch 'C:\\Users') {
+            Write-Host $line -ForegroundColor Yellow
+        }
+        elseif ($highlightKeywords | Where-Object { $line -match $_ }) {
+            Write-Host $line -ForegroundColor Yellow
+        } else {
+            Write-Host $line -ForegroundColor White
+        }
+    }
 
     # Display the command history
     try {
@@ -372,13 +400,16 @@ function Get-PowerShellHistory {
         if ($filteredHistory.Count -eq 0) {
             Write-Host "No relevant history available." -ForegroundColor Red
         } else {
-            $filteredHistory | Format-Table -Property Id, CommandLine -AutoSize
+            Write-Host "`n[+] Live PowerShell Command History:" -ForegroundColor Cyan
+            $filteredHistory | ForEach-Object {
+                Highlight-Line $_.CommandLine
+            }
         }
     } catch {
         Write-Host "Unable to access command history." -ForegroundColor Red
     }
 
-    # Get the PSReadline history file path(s) and display them
+    # Get the PSReadLine history file path(s) and display them
     try {
         $historyPaths = (Get-PSReadlineOption).HistorySavePath
 
@@ -395,7 +426,7 @@ function Get-PowerShellHistory {
                     $filteredHistoryFileContent = $historyFileContent | Where-Object { $whitelist -notcontains $_.Trim() }
 
                     Write-Host "Output: " -ForegroundColor White
-                    $filteredHistoryFileContent | ForEach-Object { Write-Host $_ -ForegroundColor White }
+                    $filteredHistoryFileContent | ForEach-Object { Highlight-Line $_ }
                 } else {
                     Write-Host "History file not found: $_" -ForegroundColor Red
                 }
@@ -412,7 +443,7 @@ function Get-PowerShellHistory {
                 $filteredHistoryFileContent = $historyFileContent | Where-Object { $whitelist -notcontains $_.Trim() }
 
                 Write-Host "Output: " -ForegroundColor White
-                $filteredHistoryFileContent | ForEach-Object { Write-Host $_ -ForegroundColor White }
+                $filteredHistoryFileContent | ForEach-Object { Highlight-Line $_ }
             } else {
                 Write-Host "History file not found: $historyPaths" -ForegroundColor Red
             }
@@ -422,7 +453,39 @@ function Get-PowerShellHistory {
     }
 }
 
-# Run the function
+function Get-EventViewerCredentials {
+    Write-Host "`n===================================================" -ForegroundColor Cyan
+    Write-Host "              Event-Viewer Credentials             " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
+
+    # Search for credential-related keywords in PowerShell Operational logs
+    try {
+        $events = Get-WinEvent -LogName 'Microsoft-Windows-PowerShell/Operational' -ErrorAction SilentlyContinue |
+                  Where-Object { $_.Message -match "(?i)(password|secret|authorization|token|basic|base64)" }
+
+        if ($events) {
+            Write-Host "`n[+] Found Potential Credentials in PowerShell Logs:" -ForegroundColor Cyan
+
+            $events | ForEach-Object {
+                # Extract and clean only the lines containing sensitive keywords
+                $filteredLines = $_.Message -split "`n" | Where-Object { 
+                    $_ -match "(?i)(password|secret|authorization|token|basic|base64)" 
+                }
+
+                # Print each filtered line, removing unnecessary whitespace
+                $filteredLines | ForEach-Object {
+                    $cleanedLine = $_ -replace '^\s+', ''  # Remove leading whitespace
+                    Write-Host $cleanedLine -ForegroundColor Yellow
+                }
+                Write-Host ""  # Blank line between entries for readability
+            }
+        } else {
+            Write-Host "No credential-related events found in Event Viewer." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Unable to access Event Viewer logs. Check permissions." -ForegroundColor Red
+    }
+}
 
 function Get-RecentFiles {
     Write-Host "`n" -NoNewLine
@@ -826,6 +889,7 @@ if ($EnableSystemInfo) { Get-SystemInfo }
 if ($EnableUserGroups) { Get-UserGroups }
 if ($EnableUserFolderContents) { Get-UserFolderContents }
 if ($EnablePowerShellHistory) { Get-PowerShellHistory }
+if ($EnableEventViewerCredentials) { Get-EventViewerCredentials }
 if ($EnableRecentFiles) { Get-RecentFiles }
 if ($EnableInstalledSoftware) { Get-InstalledSoftware }
 if ($EnableProgramFilesContents) { Get-ProgramFilesContents }
