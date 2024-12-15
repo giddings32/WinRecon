@@ -704,28 +704,33 @@ function Get-InstalledSoftware {
     Write-Host "                Installed Software                 " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
+
+    # Function to display software with version immediately after the name
+    function Get-Software {
+        param ($RegistryPath)
+
+        try {
+            Get-ItemProperty -Path $RegistryPath | 
+            Select-Object -Property DisplayName, DisplayVersion |
+            Where-Object { $_.DisplayName -ne $null } |
+            Sort-Object DisplayName |
+            ForEach-Object {
+                $name = $_.DisplayName
+                $version = if ($_.DisplayVersion) { "version: $($_.DisplayVersion)" } else { "version: N/A" }
+                Write-Host ("{0} | {1}" -f $name, $version) -ForegroundColor White
+            }
+        } catch {
+            Write-Host "Failed to access registry path: $RegistryPath" -ForegroundColor Red
+        }
+    }
+
+    Write-Host "`n[+] Installed Software (64-bit):" -ForegroundColor Cyan
+    Get-Software "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+
+    Write-Host "`n[+] Installed Software (32-bit on 64-bit OS):" -ForegroundColor Cyan
+    Get-Software "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
     Write-Host "`n" -NoNewLine
-    Write-Host "[+] Installed Software (64-bit):" -ForegroundColor Cyan 
-    try {
-        Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | 
-        Select-Object -Property DisplayName | 
-        Where-Object { $_.DisplayName -ne $null } |
-        Format-Table -AutoSize
-    } catch {
-        Write-Host "Failed to enumerate 64-bit software" -ForegroundColor Red
-    }
-
-    Write-Host "[+] Installed Software (32-bit on 64-bit OS):" -ForegroundColor Cyan
-    try {
-        Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" | 
-        Select-Object -Property DisplayName | 
-        Where-Object { $_.DisplayName -ne $null } |
-        Format-Table -AutoSize
-    } catch {
-        Write-Host "Failed to enumerate 32-bit software" -ForegroundColor Red
-    }
 }
-
 
 function Get-ProgramFilesContents {
     Write-Host "===================================================" -ForegroundColor Cyan
