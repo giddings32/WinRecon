@@ -1,4 +1,4 @@
-## 16.2.1. Service Binary Hijacking
+## Service Binary Hijacking
 
 ### Overview
 Each Windows service has an associated binary file. These binary files are executed when the service is started or transitioned into a running state. 
