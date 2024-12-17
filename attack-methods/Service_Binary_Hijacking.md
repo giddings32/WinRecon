@@ -17,9 +17,14 @@ This will provide a list of binaries or services that have insecure permissions,
 
 Example Output:
 ```plaintext
-<service_path> C:\backups\backupsvc.exe NT AUTHORITY\SYSTEM:(F)
-                                      BUILTIN\Administrators:(F)
-                                      BUILTIN\Users:(F)
+[+] Service: <service>
+    Binary Path:<service_path>
+    BUILTIN\Users:(F)
+```
+```plaintext
+[+] Service: BackupService
+    Binary Path:C:\backups\backupsvc.exe
+    BUILTIN\Users:(F)
 ```
 
 In this example, the binary `C:\backups\backupsvc.exe` has **BUILTIN\Users:(F)** permissions, making it a candidate for exploitation.
