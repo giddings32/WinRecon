@@ -1087,7 +1087,7 @@ function Get-ServiceBinaryHijacking {
     Write-Host "          Service Binary Hijacking Check           " -ForegroundColor DarkBlue -backgroundcolor white
     write-host "                                                   " -backgroundcolor white
     Write-Host "===================================================" -ForegroundColor Cyan
-
+    Write-Host "https://github.com/giddings32/WinRecon/blob/main/attack-methods/Service_Binary_Hijacking.md" -ForegroundColor Cyan
     # Define exclusion patterns for account names
     $excludePatterns = @(
         "NT AUTHORITY\\SYSTEM",
