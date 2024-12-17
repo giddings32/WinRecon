@@ -15,6 +15,7 @@ $EnableRunningProcesses = $true
 $EnableBrowserCredentials = $true
 $EnableStartupPrograms = $true
 $EnableScheduledTasks = $true
+$EnableServiceBinaryHijacking = $true
 
 # Initial Menu for Recon Mode
 do {
@@ -40,7 +41,7 @@ function Get-ValidUserInput {
 
     # Ensure valid options are provided, or default to numbers 1-15
     if (-not $ValidOptions) {
-        $ValidOptions = 1..16
+        $ValidOptions = 1..17
     }
 
     do {
@@ -97,25 +98,26 @@ switch ($ReconMode) {
         # Ask user which functions to enable
         Write-Host "`n" -NoNewLine
         Write-Host "Select the functions to ENABLE:"
-        Write-Host " 1. Get-SystemInfo"
-        Write-Host " 2. Get-UserGroups"
-        Write-Host " 3. Get-UserFolderContents"
-        Write-Host " 4. Get-PowerShellHistory"
-        Write-Host " 5. Get-EventViewerCredentials"
-	Write-Host " 6. Get-DPAPIMasterKeys"
-        Write-Host " 7. Get-RecentFiles"
-        Write-Host " 8. Get-InstalledSoftware"
-        Write-Host " 9. Get-ProgramFilesContents"
-        Write-Host "10. Get-KDBXFiles"
-        Write-Host "11. Get-XAMPPConfigFiles"
-        Write-Host "12. Get-NetworkConnections"
-        Write-Host "13. Get-RunningProcesses"
-        Write-Host "14. Get-BrowserCredentials"
-        Write-Host "15. Get-StartupPrograms"
-        Write-Host "16. Get-ScheduledTasks"
+        Write-Host " 1. System Info"
+        Write-Host " 2. User Groups"
+        Write-Host " 3. User Folder Contents"
+        Write-Host " 4. Powershell History"
+        Write-Host " 5. Event Viewer Credentials"
+	Write-Host " 6. DPAPI Master Keys"
+        Write-Host " 7. Recent Files"
+        Write-Host " 8. Installed Software"
+        Write-Host " 9. Program Files Contents"
+        Write-Host "10. KDBX Files"
+        Write-Host "11. XAMPP Config Files"
+        Write-Host "12. Network Connections"
+        Write-Host "13. Running Processes"
+        Write-Host "14. Browser Credentials"
+        Write-Host "15. Startup Programs"
+        Write-Host "16. Scheduled Tasks"
+        Write-Host "17. Service Binary Hijacking"
         Write-Host "`n" -NoNewLine
 
-        $enableInput = Get-ValidUserInput "Enter numbers 1-16 separated by commas" -ValidOptions $validOptions
+        $enableInput = Get-ValidUserInput "Enter numbers 1-17 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
 
         if ($enableInput) {
@@ -138,6 +140,7 @@ switch ($ReconMode) {
                     "14" { $EnableBrowserCredentials = $true }
                     "15" { $EnableStartupPrograms = $true }
                     "16" { $EnableScheduledTasks = $true }
+                    "17" { $EnableServiceBinaryHijacking = $true }
                 }
             }
         }
@@ -146,24 +149,25 @@ switch ($ReconMode) {
         Write-Host "`n" -NoNewLine
         Write-Host "Running Recon with Exclusions... All functions are enabled. Select which ones to disable."
         Write-Host "Enter numbers to DISABLE (e.g., 1,2,3). Press Enter to keep all enabled."
-        Write-Host " 1. Get-SystemInfo"
-        Write-Host " 2. Get-UserGroups"
-        Write-Host " 3. Get-UserFolderContents"
-        Write-Host " 4. Get-PowerShellHistory"
-        Write-Host " 5. Get-EventViewerCredentials"
-	Write-Host " 6. Get-DPAPIMasterKeys"
-        Write-Host " 7. Get-RecentFiles"
-        Write-Host " 8. Get-InstalledSoftware"
-        Write-Host " 9. Get-ProgramFilesContents"
-        Write-Host "10. Get-KDBXFiles"
-        Write-Host "11. Get-XAMPPConfigFiles"
-        Write-Host "12. Get-NetworkConnections"
-        Write-Host "13. Get-RunningProcesses"
-        Write-Host "14. Get-BrowserCredentials"
-        Write-Host "15. Get-StartupPrograms"
-        Write-Host "16. Get-ScheduledTasks"
+        Write-Host " 1. System Info"
+        Write-Host " 2. User Groups"
+        Write-Host " 3. User Folder Contents"
+        Write-Host " 4. Powershell History"
+        Write-Host " 5. Event Viewer Credentials"
+	Write-Host " 6. DPAPI Master Keys"
+        Write-Host " 7. Recent Files"
+        Write-Host " 8. Installed Software"
+        Write-Host " 9. Program Files Contents"
+        Write-Host "10. KDBX Files"
+        Write-Host "11. XAMPP Config Files"
+        Write-Host "12. Network Connections"
+        Write-Host "13. Running Processes"
+        Write-Host "14. Browser Credentials"
+        Write-Host "15. Startup Programs"
+        Write-Host "16. Scheduled Tasks"
+        Write-Host "17. Service Binary Hijacking"
         Write-Host "`n" -NoNewLine
-        $disableInput = Get-ValidUserInput "Enter numbers 1-16 separated by commas" -ValidOptions $validOptions
+        $disableInput = Get-ValidUserInput "Enter numbers 1-17 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
 
         if ($disableInput) {
@@ -186,6 +190,7 @@ switch ($ReconMode) {
                     "14" { $EnableBrowserCredentials = $false }
                     "15" { $EnableStartupPrograms = $false }
                     "16" { $EnableScheduledTasks = $false }
+                    "17" { $EnableServiceBinaryHijacking = $false}
                 }
             }
         }
@@ -267,7 +272,6 @@ function Get-SystemInfo {
 
 }
 
-
 # Determine if the machine is part of a domain by checking for the Get-ADUser cmdlet
 function Get-UserGroups {
     Write-Host "`n" -NoNewLine
@@ -324,7 +328,6 @@ function Get-UserGroups {
         }
     }
 }
-
 
 function Get-UserFolderContents {
     Write-Host "`n" -NoNewLine
@@ -769,7 +772,6 @@ function Get-ProgramFilesContents {
     }
 }
 
-
 function Get-KDBXFiles {
     Write-Host "`n" -NoNewLine
     Write-Host "`n===================================================" -ForegroundColor Cyan
@@ -813,7 +815,6 @@ function Get-KDBXFiles {
         Write-Host "An error occurred while searching for KeePass database files." -ForegroundColor Red
     }
 }
-
 
 function Get-XAMPPConfigFiles {
     Write-Host "`n" -NoNewLine
@@ -910,7 +911,6 @@ function Get-XAMPPConfigFiles {
         Write-Host "An error occurred while searching for the XAMPP directory. Details: $_" -ForegroundColor Red
     }
 }
-
 
 function Get-NetworkConnections {
     Write-Host "`n" -NoNewLine
@@ -1053,7 +1053,6 @@ function Get-BrowserCredentials {
     }
 }
 
-
 function Get-StartupPrograms {
     write-host "`n===================================================" -foregroundcolor cyan
     write-host "                                                   " -backgroundcolor white
@@ -1068,7 +1067,6 @@ function Get-StartupPrograms {
     }
 }
 
-
 function Get-ScheduledTasks {
     write-host "`n===================================================" -foregroundcolor cyan
     write-host "                                                   " -backgroundcolor white
@@ -1080,6 +1078,64 @@ function Get-ScheduledTasks {
         Get-ScheduledTask | Select-Object TaskName, State, TaskPath | Format-Table -AutoSize
     } catch {
         Write-Host "Unable to retrieve scheduled tasks." -ForegroundColor Red
+    }
+}
+
+function Get-ServiceBinaryHijacking {
+    Write-Host "===================================================" -ForegroundColor Cyan
+    write-host "                                                   " -backgroundcolor white
+    Write-Host "          Service Binary Hijacking Check           " -ForegroundColor DarkBlue -backgroundcolor white
+    write-host "                                                   " -backgroundcolor white
+    Write-Host "===================================================" -ForegroundColor Cyan
+
+    # Define exclusion patterns for account names
+    $excludePatterns = @(
+        "NT AUTHORITY\\SYSTEM",
+        "BUILTIN\\Administrators",
+        "APPLICATION PACKAGE AUTHORITY\\ALL APPLICATION PACKAGES",
+        "NT SERVICE\\TrustedInstaller"
+    )
+
+    # Define exclusion patterns for permissions
+    $excludePermissions = @("\(RX\)$")
+
+    # Fetch running services with binary paths
+    $services = Get-CimInstance -ClassName Win32_Service |
+        Where-Object { $_.State -eq 'Running' -and $_.PathName } |
+        Select-Object Name, PathName
+
+    foreach ($service in $services) {
+        $binaryPath = $service.PathName -replace '"', '' -split '\s+' | Select-Object -First 1
+
+        try {
+            # Run icacls and capture output
+            $icaclsOutput = icacls $binaryPath 2>&1
+
+            # Skip services with "file not found" errors
+            if ($icaclsOutput -match "The system cannot find the file specified") {
+                continue
+            }
+
+            # Filter output dynamically, remove "Successfully processed"
+            $filteredOutput = $icaclsOutput | Where-Object {
+                $_ -notmatch ($excludePatterns -join "|") -and `
+                $_ -notmatch ($excludePermissions -join "|") -and `
+                $_ -notmatch "Successfully processed"
+            }
+
+            # Only print services with remaining permissions
+            if ($filteredOutput -and ($filteredOutput | Where-Object { $_ -match ':' })) {
+                Write-Host "`n[+] Service: $($service.Name)" -ForegroundColor Cyan
+                Write-Host "    Binary Path: $binaryPath" -ForegroundColor White
+
+                # Align permissions under "Binary Path"
+                $filteredOutput | ForEach-Object {
+                    Write-Host ("    " + $_.TrimStart()) -ForegroundColor White
+                }
+            }
+        } catch {
+            Write-Host "`n[!] Unable to access binary path: $binaryPath" -ForegroundColor Red
+        }
     }
 }
 
@@ -1100,4 +1156,5 @@ if ($EnableRunningProcesses) { Get-RunningProcesses }
 if ($EnableBrowserCredentials) { Get-BrowserCredentials }
 if ($EnableStartupPrograms) { Get-StartupPrograms }
 if ($EnableScheduledTasks) { Get-ScheduledTasks }
+if ($EnableServiceBinaryHijacking) { Get-ServiceBinaryHijacking }
 write-host "`n" -NoNewLine
