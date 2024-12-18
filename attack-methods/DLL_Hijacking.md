@@ -23,64 +23,10 @@ First, identify directories where you have write permissions and locate missing 
    - **Option 18**: Perform DLL Hijacking checks against known vulnerable software and directories.
 
 Example Output:
-```plaintext
-===================================================
 
-               DLL Hijacking Check
+![image](https://github.com/user-attachments/assets/6639ec58-b090-4e72-9af0-687bc28daaa4)
+![image](https://github.com/user-attachments/assets/475bbb6b-f128-4c6f-bf3f-b4c71f199678)
 
-===================================================
-
-[+] Program: 7-Zip 21.07 (x64)
-    Identifier: 7-Zip
-    Version: 21.07
-    Path: C:\Program Files\7-Zip\
-    Path is Not Writable
-
-[+] Program: XAMPP
-    Identifier: xampp
-    Version: 7.4.29-1
-    Path: C:\xampp
-    [!] Path is Writable
-
-[+] Program: VMware Tools
-    Identifier: {4FE02FF2-2194-4E1D-8B04-F934655966F9}
-    Version: 11.3.0.18090558
-    Path: C:\Program Files\VMware\VMware Tools\
-    Path is Not Writable
-
-[+] Program: FileZilla 3.63.1
-    Identifier: FileZilla Client
-    Version: 3.63.1
-    Path: C:\FileZilla\FileZilla FTP Client
-    [!] Path is Writable
-    Vulnerable DLL: TextShaping.dll
-
-[+] Program: KeePass Password Safe 2.51.1
-    Identifier: KeePassPasswordSafe2_is1
-    Version: 2.51.1
-    Path: C:\Program Files\KeePass Password Safe 2\
-    Path is Not Writable
-
-[+] Program: Microsoft Edge
-    Identifier: Microsoft Edge
-    Version: 129.0.2792.52
-    Path: C:\Program Files (x86)\Microsoft\Edge\Application
-    Path is Not Writable
-
-[+] Program: Microsoft Edge WebView2 Runtime
-    Identifier: Microsoft EdgeWebView
-    Version: 128.0.2739.79
-    Path: C:\Program Files (x86)\Microsoft\EdgeWebView\Application
-    Path is Not Writable
-
-[+] Checking Operating System for Vulnerabilities...
-
-[+] OS: Microsoft Windows 11 Pro
-    Version: 10.0.22621
-    Path: C:\Windows\
-    Path is Not Writable
-    Vulnerable DLL: apds.dll
-```
 
 In this example, the `FileZilla` application directory is writable, and the program attempts to load `TextShaping.dll`, making it a potential candidate for DLL hijacking.
 
