@@ -75,7 +75,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 On your Kali machine, cross-compile the DLL using `mingw-w64`:
 
 ```bash
-x86_64-w64-mingw32-gcc malicious_dll.cpp --shared -o TextShaping.dll
+x86_64-w64-mingw32-gcc TextShaping.cpp --shared -o TextShaping.dll
 ```
 
 - **`--shared`**: Generates a DLL file.
