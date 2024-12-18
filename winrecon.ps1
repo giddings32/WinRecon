@@ -16,6 +16,7 @@ $EnableBrowserCredentials = $true
 $EnableStartupPrograms = $true
 $EnableScheduledTasks = $true
 $EnableServiceBinaryHijacking = $true
+$EnableDLLHijacking = $true
 
 # Initial Menu for Recon Mode
 do {
@@ -41,7 +42,7 @@ function Get-ValidUserInput {
 
     # Ensure valid options are provided, or default to numbers 1-15
     if (-not $ValidOptions) {
-        $ValidOptions = 1..17
+        $ValidOptions = 1..18
     }
 
     do {
@@ -94,6 +95,8 @@ switch ($ReconMode) {
         $EnableBrowserCredentials = $false
         $EnableStartupPrograms = $false
         $EnableScheduledTasks = $false
+        $EnableServiceBinaryHijacking = $false
+        $EnableDLLHijacking = $false
 
         # Ask user which functions to enable
         Write-Host "`n" -NoNewLine
@@ -115,9 +118,10 @@ switch ($ReconMode) {
         Write-Host "15. Startup Programs"
         Write-Host "16. Scheduled Tasks"
         Write-Host "17. Service Binary Hijacking"
+        Write-Host "18. DLL Hijacking"
         Write-Host "`n" -NoNewLine
 
-        $enableInput = Get-ValidUserInput "Enter numbers 1-17 separated by commas" -ValidOptions $validOptions
+        $enableInput = Get-ValidUserInput "Enter numbers 1-18 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
 
         if ($enableInput) {
@@ -141,6 +145,7 @@ switch ($ReconMode) {
                     "15" { $EnableStartupPrograms = $true }
                     "16" { $EnableScheduledTasks = $true }
                     "17" { $EnableServiceBinaryHijacking = $true }
+                    "18" {$EnableDLLHijacking = $true }
                 }
             }
         }
@@ -166,8 +171,9 @@ switch ($ReconMode) {
         Write-Host "15. Startup Programs"
         Write-Host "16. Scheduled Tasks"
         Write-Host "17. Service Binary Hijacking"
+        Write-Host "18. DLL Hijacking"
         Write-Host "`n" -NoNewLine
-        $disableInput = Get-ValidUserInput "Enter numbers 1-17 separated by commas" -ValidOptions $validOptions
+        $disableInput = Get-ValidUserInput "Enter numbers 1-18 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
 
         if ($disableInput) {
@@ -190,7 +196,8 @@ switch ($ReconMode) {
                     "14" { $EnableBrowserCredentials = $false }
                     "15" { $EnableStartupPrograms = $false }
                     "16" { $EnableScheduledTasks = $false }
-                    "17" { $EnableServiceBinaryHijacking = $false}
+                    "17" { $EnableServiceBinaryHijacking = $false }
+                    "18" { $EnableDLLHijacking = $false }
                 }
             }
         }
@@ -1087,7 +1094,7 @@ function Get-ServiceBinaryHijacking {
     Write-Host "          Service Binary Hijacking Check           " -ForegroundColor DarkBlue -backgroundcolor white
     write-host "                                                   " -backgroundcolor white
     Write-Host "===================================================" -ForegroundColor Cyan
-    Write-Host "https://github.com/giddings32/WinRecon/blob/main/attack-methods/Service_Binary_Hijacking.md" -ForegroundColor Cyan
+
     # Define exclusion patterns for account names
     $excludePatterns = @(
         "NT AUTHORITY\\SYSTEM",
@@ -1098,6 +1105,33 @@ function Get-ServiceBinaryHijacking {
 
     # Define exclusion patterns for permissions
     $excludePermissions = @("\(RX\)$")
+
+    # Define permission meanings
+    $PermissionMeanings = @{
+        "(F)"  = "Full control"
+        "(M)"  = "Modify"
+        "(RX)" = "Read and Execute"
+        "(R)"  = "Read"
+        "(W)"  = "Write"
+        "(D)"  = "Delete"
+        "(I)"  = "Inherited"
+        "(OI)" = "Object inherit"
+        "(CI)" = "Container inherit"
+        "(IO)" = "Inherited only"
+        "(N)"  = "No access"
+    }
+
+    # Helper function to add meanings to permissions
+    function Add-PermissionMeanings {
+        param ($line)
+        $updatedLine = $line
+        foreach ($perm in $PermissionMeanings.Keys) {
+            if ($line -match [regex]::Escape($perm)) {
+                $updatedLine += " --> $($PermissionMeanings[$perm])"
+            }
+        }
+        return $updatedLine
+    }
 
     # Fetch running services with binary paths
     $services = Get-CimInstance -ClassName Win32_Service |
@@ -1128,14 +1162,186 @@ function Get-ServiceBinaryHijacking {
                 Write-Host "`n[+] Service: $($service.Name)" -ForegroundColor Cyan
                 Write-Host "    Binary Path: $binaryPath" -ForegroundColor White
 
-                # Align permissions under "Binary Path"
+                # Align permissions under "Binary Path" with meanings
                 $filteredOutput | ForEach-Object {
-                    Write-Host ("    " + $_.TrimStart()) -ForegroundColor White
+                    $lineWithMeanings = Add-PermissionMeanings $_
+                    Write-Host ("    " + $lineWithMeanings.TrimStart()) -ForegroundColor White
                 }
             }
         } catch {
             Write-Host "`n[!] Unable to access binary path: $binaryPath" -ForegroundColor Red
         }
+    }
+}
+
+function Get-DLLHijacking {
+    Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "               DLL Hijacking Check                 " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
+
+    # List of known vulnerable software and versions
+    $vulnerableSoftware = @(
+        @{ Name = "Adobe Device Central CS5"; Version = "N/A"; DLL = "qtcf.dll" }
+        @{ Name = "Adobe Dreamweaver CS4"; Version = "N/A"; DLL = "ibfs32.dll" }
+        @{ Name = "Adobe Dreamweaver CS5"; Version = "11.0 build 4909"; DLL = "mfc90loc.dll" }
+        @{ Name = "Adobe ExtendedScript Toolkit CS5"; Version = "3.5.0.52"; DLL = "dwmapi.dll" }
+        @{ Name = "Adobe Extension Manager CS5"; Version = "5.0.298"; DLL = "dwmapi.dll" }
+        @{ Name = "Adobe Illustrator CS4"; Version = "N/A"; DLL = "aires.dll" }
+        @{ Name = "Adobe InDesign CS4"; Version = "N/A"; DLL = "ibfs32.dll" }
+        @{ Name = "Adobe On Location CS4"; Version = "N/A"; DLL = "ibfs32.dll" }
+        @{ Name = "Adobe Photoshop CS2"; Version = "N/A"; DLL = "Wintab32.dll" }
+        @{ Name = "Adobe Premier Pro CS4"; Version = "N/A"; DLL = "ibfs32.dll" }
+        @{ Name = "Apple Safari"; Version = "5.0.1"; DLL = "dwmapi.dll" }
+        @{ Name = "Autodesk AutoCAD"; Version = "2007"; DLL = "color.dll" }
+        @{ Name = "Avast!"; Version = "5.0.594"; DLL = "mfc90loc.dll" }
+        @{ Name = "BS.Player"; Version = "2.56 build 1043"; DLL = "mfc71loc.dll" }
+        @{ Name = "Cisco Packet Tracer"; Version = "5.2"; DLL = "wintab32.dll" }
+        @{ Name = "Corel PHOTO-PAINT X3"; Version = "13.0.0.576"; DLL = "crlrib.dll" }
+        @{ Name = "CorelDRAW X3"; Version = "13.0.0.576"; DLL = "crlrib.dll" }
+        @{ Name = "Daemon Tools Lite"; Version = "N/A"; DLL = "mfc80loc.dll" }
+        @{ Name = "Dashlane"; Version = "N/A"; DLL = "" }
+        @{ Name = "Ettercap NG"; Version = "0.7.3"; DLL = "wpcap.dll" }
+        @{ Name = "FileZilla Client"; Version = "3.63.1"; DLL = "TextShaping.dll" } # Validated
+        @{ Name = "Google Earth"; Version = "5.1.3535.3218"; DLL = "quserex.dll" }
+        @{ Name = "Huawei eSpace"; Version = "1.1.11.103"; DLL = "" }
+        @{ Name = "Hubstaff"; Version = "1.6.14-61e5e22e"; DLL = "wow64log" }
+        @{ Name = "InterVideo WinDVD"; Version = "5"; DLL = "cpqdvd.dll" }
+        @{ Name = "Media Player Classic"; Version = "1.3.2189.0"; DLL = "iacenc.dll" }
+        @{ Name = "Media Player Classic"; Version = "6.4.9.1"; DLL = "iacenc.dll" }
+        @{ Name = "Microsoft Address Book"; Version = "6.00.2900.5512"; DLL = "wab32res.dll" }
+        @{ Name = "Microsoft Group Convertor"; Version = "N/A"; DLL = "imm.dll" }
+        @{ Name = "Microsoft Internet Connection Signup Wizard"; Version = "N/A"; DLL = "smmscrpt.dll" }
+        @{ Name = "Microsoft Internet Explorer"; Version = "7"; DLL = "" }
+        @{ Name = "Microsoft Office Groove"; Version = "2007"; DLL = "mso.dll" }
+        @{ Name = "Microsoft PowerPoint"; Version = "2007"; DLL = "rpawinet.dll" }
+        @{ Name = "Microsoft PowerPoint"; Version = "2010"; DLL = "pptimpconv.dll" }
+        @{ Name = "Microsoft Visio"; Version = "2003"; DLL = "mfc71enu.dll" }
+        @{ Name = "Microsoft Vista"; Version = "N/A"; DLL = "fveapi.dll" }
+        @{ Name = "Microsoft Windows Contacts"; Version = "N/A"; DLL = "wab32res.dll" }
+        @{ Name = "Microsoft Windows 11 Pro"; Version = "10.0.22621"; DLL = "apds.dll" }
+        @{ Name = "Microsoft Windows 7"; Version = "7"; DLL = "wab32res.dll" }
+        @{ Name = "Microsoft Windows Internet Communication Settings"; Version = "N/A"; DLL = "schannel.dll" }
+        @{ Name = "Microsoft Windows Live Email"; Version = "N/A"; DLL = "dwmapi.dll" }
+        @{ Name = "Microsoft Windows Movie Maker"; Version = "2.6.4038.0"; DLL = "hhctrl.ocx" }
+        @{ Name = "Mozilla Firefox"; Version = "3.6.8"; DLL = "dwmapi.dll" }
+        @{ Name = "Mozilla Thunderbird"; Version = "N/A"; DLL = "dwmapi.dll" }
+        @{ Name = "NullSoft Winamp"; Version = "5.581"; DLL = "wnaspi32.dll" }
+        @{ Name = "Nvidia Driver"; Version = "N/A"; DLL = "nview.dll" }
+        @{ Name = "Opera"; Version = "10.61"; DLL = "dwmapi.dll" }
+        @{ Name = "OutSystems Service Studio 11.53.30"; Version = "11.53.30"; DLL = "" }
+        @{ Name = "Roxio Creator DE"; Version = "N/A"; DLL = "HomeUtils9.dll" }
+        @{ Name = "Roxio MyDVD"; Version = "9"; DLL = "HomeUtils9.dll" }
+        @{ Name = "Roxio Photosuite"; Version = "9"; DLL = "homeutils9.dll" }
+        @{ Name = "Skype"; Version = "4.2.0.169"; DLL = "wab32.dll" }
+        @{ Name = "TeamMate Audit Management Software Suite"; Version = "N/A"; DLL = "mfc71enu.dll" }
+        @{ Name = "TeamViewer"; Version = "5.0.8703"; DLL = "dwmapi.dll" }
+        @{ Name = "TechSmith Snagit"; Version = "10 (Build 788)"; DLL = "dwmapi.dll" }
+        @{ Name = "VideoLAN VLC Media Player"; Version = "1.1.3"; DLL = "wintab32.dll" }
+        @{ Name = "VMware Workstation"; Version = "15.1.0"; DLL = "" }
+        @{ Name = "Wireshark"; Version = "1.2.10"; DLL = "airpcap.dll" }
+        @{ Name = "μTorrent (uTorrent)"; Version = "2.0.3"; DLL = "plugin_dll.dll" }
+    )
+
+    function Is-PathWritable {
+        param($Path)
+        try {
+            # Retrieve ACL for the path
+            $acl = Get-Acl -Path $Path -ErrorAction Stop
+
+            # Get current user and all groups/roles the user belongs to
+            $userIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+            $userGroups = $userIdentity.Groups | ForEach-Object { $_.Translate([System.Security.Principal.NTAccount]) }
+            $userGroups += $userIdentity.Name  # Add current user
+
+            # Check for writable permissions
+            $writablePermissions = $acl.Access | Where-Object {
+                $_.FileSystemRights -match "Write|Modify|FullControl" -and
+                $_.AccessControlType -eq "Allow" -and
+                ($userGroups -contains $_.IdentityReference)
+            }
+
+            return $writablePermissions.Count -gt 0
+        } catch {
+            return $false
+        }
+    }
+
+    # Fetch installed software from the registry
+    $installedSoftware = @()
+    $installedSoftware += Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue |
+                          Select-Object DisplayName, PSChildName, DisplayVersion, InstallLocation
+
+    $installedSoftware += Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue |
+                          Select-Object DisplayName, PSChildName, DisplayVersion, InstallLocation
+
+    # Iterate through installed software
+    foreach ($software in $installedSoftware) {
+        if (-not $software.InstallLocation) { continue } # Skip if InstallLocation is empty
+
+        $isVulnerable = $false
+        $vulnDLL = $null
+
+        # Check if the software matches a known vulnerable software
+        foreach ($vuln in $vulnerableSoftware) {
+            if (($software.DisplayName -match [regex]::Escape($vuln.Name) -or 
+                 $software.PSChildName -match [regex]::Escape($vuln.Name)) -and 
+                 $software.DisplayVersion -match $vuln.Version) {
+                $isVulnerable = $true
+                $vulnDLL = $vuln.DLL
+                break
+            }
+        }
+
+        # Define the color based on vulnerability status
+        $color = if ($isVulnerable) { "Yellow" } else { "White" }
+
+        # Output the software information
+        Write-Host "`n[+] Program: $($software.DisplayName)" -ForegroundColor $color
+        Write-Host "    Identifier: $($software.PSChildName)" -ForegroundColor $color
+        Write-Host "    Version: $($software.DisplayVersion)" -ForegroundColor $color
+        Write-Host "    Path: $($software.InstallLocation)" -ForegroundColor $color
+
+        # Check if the path is writable
+        if (Is-PathWritable $software.InstallLocation) {
+            Write-Host "    [!] Path is Writable" -ForegroundColor Yellow
+        } else {
+            Write-Host "    Path is Not Writable" -ForegroundColor White
+        }
+
+        # If the program is vulnerable, display the DLL
+        if ($isVulnerable -and $vulnDLL) {
+            Write-Host "    Vulnerable DLL: $vulnDLL" -ForegroundColor Yellow
+        }
+    }
+
+    # Check OS version for vulnerabilities
+    Write-Host "`n[+] Checking Operating System for Vulnerabilities..." -ForegroundColor Cyan
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem
+        $osName = $os.Caption.Trim()
+        $osVersion = $os.Version
+
+        foreach ($vuln in $vulnerableSoftware) {
+            if ($vuln.Name -match "Microsoft Windows" -and $osVersion -match $vuln.Version) {
+                Write-Host "`n[+] OS: $osName" -ForegroundColor Yellow
+                Write-Host "    Version: $osVersion" -ForegroundColor Yellow
+                Write-Host "    Path: C:\Windows\" -ForegroundColor Yellow
+
+                # Check if the Windows path is writable
+                if (Is-PathWritable "C:\Windows\") {
+                    Write-Host "    [!] Path is Writable" -ForegroundColor Yellow
+                } else {
+                    Write-Host "    Path is Not Writable" -ForegroundColor White
+                }
+
+                Write-Host "    Vulnerable DLL: $($vuln.DLL)" -ForegroundColor Yellow
+                break
+            }
+        }
+    } catch {
+        Write-Host "Unable to check OS version and vulnerabilities." -ForegroundColor Red
     }
 }
 
@@ -1157,4 +1363,5 @@ if ($EnableBrowserCredentials) { Get-BrowserCredentials }
 if ($EnableStartupPrograms) { Get-StartupPrograms }
 if ($EnableScheduledTasks) { Get-ScheduledTasks }
 if ($EnableServiceBinaryHijacking) { Get-ServiceBinaryHijacking }
+if ($EnableDLLHijacking) { Get-DLLHijacking }
 write-host "`n" -NoNewLine
