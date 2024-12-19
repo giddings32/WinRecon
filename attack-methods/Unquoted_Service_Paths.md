@@ -152,8 +152,5 @@ To avoid detection, clean up after exploitation:
 
 ### References
 - [HackTricks - Unquoted Service Paths](https://book.hacktricks.xyz/windows-hardening/windows-local-privilege-escalation/unquoted-service-paths)
-- Microsoft Documentation on Service Paths
 
 ---
-
-**End of Unquoted Service Path Exploit Guide**
