@@ -1169,6 +1169,8 @@ function Get-UnquotedServicePaths {
                             $_ -match $includePermissionsRegex
                         } | ForEach-Object {
                             $line = $_ -replace '^\s+', ''  # Clean up whitespace
+                            $line = $line -replace [regex]::Escape($finalPath), ''  # Remove $finalPath from the output
+			    $line = $line.Trim()                     # Trim trailing whitespace
                             $groupName = $line -replace '(:.*$)', ''  # Extract group name
 
                             if ($groupName -eq "CREATOR OWNER") {
