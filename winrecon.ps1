@@ -1102,14 +1102,6 @@ function Get-UnquotedServicePaths {
     Write-Host "===================================================" -ForegroundColor Cyan
     Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Unquoted_Service_Paths.md" -ForegroundColor Cyan
 
-    # Define exclusion patterns for account names
-    $excludePatterns = @(
-        "NT AUTHORITY\\SYSTEM",
-        "BUILTIN\\Administrators",
-        "APPLICATION PACKAGE AUTHORITY\\ALL APPLICATION PACKAGES",
-        "NT SERVICE\\TrustedInstaller"
-    )
-
     # Define inclusion for permissions: must contain W or F
     $includePermissionsRegex = ':(.*\b[WF]\b.*)'
 
@@ -1165,7 +1157,6 @@ function Get-UnquotedServicePaths {
                         # Run icacls and include only permissions with W or F after the colon
                         $validPermissions = icacls $finalPath 2>&1 | Where-Object {
                             $_ -notmatch "Successfully processed" -and
-                            $_ -notmatch ($excludePatterns -join "|") -and
                             $_ -match $includePermissionsRegex
                         } | ForEach-Object {
                             $line = $_ -replace '^\s+', ''  # Clean up whitespace
