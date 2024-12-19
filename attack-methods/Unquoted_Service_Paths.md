@@ -136,18 +136,6 @@ To avoid detection, clean up after exploitation:
    ```powershell
    net user taskmgrsvc /delete
    ```
-
----
-
-### Notes:
-- Unquoted service paths require specific conditions, such as missing quotes in the binary path and writable permissions in intermediate directories.
-- Ensure you identify all writable paths before placing the malicious executable.
-- Use PowerUp's `Get-UnquotedService` function to automate the discovery process:
-   ```powershell
-   Import-Module .\PowerUp.ps1
-   Get-UnquotedService
-   ```
-
 ---
 
 ### References
