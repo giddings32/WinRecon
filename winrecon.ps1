@@ -1100,6 +1100,7 @@ function Get-UnquotedServicePaths {
     Write-Host "             Unquoted Service Paths Check          " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Unquoted_Service_Paths.md" -ForegroundColor Cyan
 
     # Define exclusion patterns for account names
     $excludePatterns = @(
@@ -1231,6 +1232,7 @@ function Get-ServiceBinaryHijacking {
     Write-Host "          Service Binary Hijacking Check           " -ForegroundColor DarkBlue -backgroundcolor white
     write-host "                                                   " -backgroundcolor white
     Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Service_Binary_Hijacking.md" -ForegroundColor Cyan
 
     # Define exclusion patterns for account names
     $excludePatterns = @(
@@ -1317,6 +1319,7 @@ function Get-DLLHijacking {
     Write-Host "               DLL Hijacking Check                 " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/DLL_Hijacking.md" -ForegroundColor Cyan
 
     # List of known vulnerable software and versions
     $vulnerableSoftware = @(
