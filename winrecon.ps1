@@ -15,6 +15,7 @@ $EnableRunningProcesses = $true
 $EnableBrowserCredentials = $true
 $EnableStartupPrograms = $true
 $EnableScheduledTasks = $true
+$EnableUnquotedServicePaths = $true
 $EnableServiceBinaryHijacking = $true
 $EnableDLLHijacking = $true
 
@@ -42,7 +43,7 @@ function Get-ValidUserInput {
 
     # Ensure valid options are provided, or default to numbers 1-15
     if (-not $ValidOptions) {
-        $ValidOptions = 1..18
+        $ValidOptions = 1..19
     }
 
     do {
@@ -95,6 +96,7 @@ switch ($ReconMode) {
         $EnableBrowserCredentials = $false
         $EnableStartupPrograms = $false
         $EnableScheduledTasks = $false
+        $EnableUnquotedServicePaths = $false
         $EnableServiceBinaryHijacking = $false
         $EnableDLLHijacking = $false
 
@@ -117,11 +119,12 @@ switch ($ReconMode) {
         Write-Host "14. Browser Credentials"
         Write-Host "15. Startup Programs"
         Write-Host "16. Scheduled Tasks"
-        Write-Host "17. Service Binary Hijacking"
-        Write-Host "18. DLL Hijacking"
+        Write-Host "17. Unquoted Service Paths"
+        Write-Host "18. Service Binary Hijacking"
+        Write-Host "19. DLL Hijacking"
         Write-Host "`n" -NoNewLine
 
-        $enableInput = Get-ValidUserInput "Enter numbers 1-18 separated by commas" -ValidOptions $validOptions
+        $enableInput = Get-ValidUserInput "Enter numbers 1-19 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
 
         if ($enableInput) {
@@ -144,8 +147,9 @@ switch ($ReconMode) {
                     "14" { $EnableBrowserCredentials = $true }
                     "15" { $EnableStartupPrograms = $true }
                     "16" { $EnableScheduledTasks = $true }
-                    "17" { $EnableServiceBinaryHijacking = $true }
-                    "18" {$EnableDLLHijacking = $true }
+                    "17" { $EnableUnquotedServicePaths = $true }
+                    "18" { $EnableServiceBinaryHijacking = $true }
+                    "19" { $EnableDLLHijacking = $true }
                 }
             }
         }
@@ -170,10 +174,11 @@ switch ($ReconMode) {
         Write-Host "14. Browser Credentials"
         Write-Host "15. Startup Programs"
         Write-Host "16. Scheduled Tasks"
-        Write-Host "17. Service Binary Hijacking"
-        Write-Host "18. DLL Hijacking"
+        Write-Host "17. Unquoted Service Paths"
+        Write-Host "18. Service Binary Hijacking"
+        Write-Host "19. DLL Hijacking"
         Write-Host "`n" -NoNewLine
-        $disableInput = Get-ValidUserInput "Enter numbers 1-18 separated by commas" -ValidOptions $validOptions
+        $disableInput = Get-ValidUserInput "Enter numbers 1-19 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
 
         if ($disableInput) {
@@ -196,8 +201,9 @@ switch ($ReconMode) {
                     "14" { $EnableBrowserCredentials = $false }
                     "15" { $EnableStartupPrograms = $false }
                     "16" { $EnableScheduledTasks = $false }
-                    "17" { $EnableServiceBinaryHijacking = $false }
-                    "18" { $EnableDLLHijacking = $false }
+                    "17" { $EnableUnquotedServicePaths = $false }
+                    "18" { $EnableServiceBinaryHijacking = $false }
+                    "19" { $EnableDLLHijacking = $false }
                 }
             }
         }
@@ -1088,8 +1094,139 @@ function Get-ScheduledTasks {
     }
 }
 
-function Get-ServiceBinaryHijacking {
+function Get-UnquotedServicePaths {
     Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "             Unquoted Service Paths Check          " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
+
+    # Define exclusion patterns for account names
+    $excludePatterns = @(
+        "NT AUTHORITY\\SYSTEM",
+        "BUILTIN\\Administrators",
+        "APPLICATION PACKAGE AUTHORITY\\ALL APPLICATION PACKAGES",
+        "NT SERVICE\\TrustedInstaller"
+    )
+
+    # Define inclusion for permissions: must contain W or F
+    $includePermissionsRegex = ':(.*\b[WF]\b.*)'
+
+    # Function to check if a path is unquoted
+    function Is-UnquotedPath {
+        param ($Path)
+        return ($Path -match '^[A-Za-z]:\\[^"]+ .+') -and ($Path -notmatch '^".+?"$')
+    }
+
+    # Function to check if a user is in a group
+    function Is-UserInGroup {
+        param ($GroupName)
+        $userIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $userGroups = $userIdentity.Groups | ForEach-Object { $_.Translate([System.Security.Principal.NTAccount]).Value }
+        $userGroups += $userIdentity.Name
+        return $userGroups -contains $GroupName
+    }
+
+    # Function to check if the current user matches the file owner
+    function Is-UserOwner {
+        param ($Path)
+        try {
+            $acl = Get-Acl -Path $Path -ErrorAction SilentlyContinue
+            $owner = $acl.Owner
+            return Is-UserInGroup -GroupName $owner
+        } catch {
+            return $false
+        }
+    }
+
+    # Function to run icacls and filter permissions
+    function Check-ICacls {
+        param ($Path)
+
+        # Split path into segments
+        $pathParts = $Path -split '\\'
+        $builtPath = ""
+        $lastPath = ""
+
+        $exploitablePaths = @() # Store exploitable paths to display later
+
+        for ($i = 0; $i -lt $pathParts.Length - 1; $i++) {
+            $builtPath += "$($pathParts[$i])\"  # Incrementally build the path
+            $currentSegment = $pathParts[$i + 1]
+
+            # Check if the next directory contains a space
+            if ($currentSegment -match ' ') {
+                $finalPath = if ($builtPath -eq "C:\") { "C:\" } else { $builtPath.TrimEnd('\') }
+                if ($finalPath -ne $lastPath) {  # Avoid duplicate checks
+                    $lastPath = $finalPath  # Save the last checked path
+
+                    try {
+                        # Run icacls and include only permissions with W or F after the colon
+                        $validPermissions = icacls $finalPath 2>&1 | Where-Object {
+                            $_ -notmatch "Successfully processed" -and
+                            $_ -notmatch ($excludePatterns -join "|") -and
+                            $_ -match $includePermissionsRegex
+                        } | ForEach-Object {
+                            $line = $_ -replace '^\s+', ''  # Clean up whitespace
+                            $groupName = $line -replace '(:.*$)', ''  # Extract group name
+
+                            if ($groupName -eq "CREATOR OWNER") {
+                                if (Is-UserOwner -Path $finalPath) {
+                                    $line
+                                }
+                            }
+                            elseif (Is-UserInGroup -GroupName $groupName) {
+                                $line
+                            }
+                        }
+
+                        if ($validPermissions) {
+                            # Add modified path with potential executable
+                            $splitSegment = ($currentSegment -split ' ')[0] + ".exe"
+                            $exploitablePaths += @{
+                                Path = "$finalPath\$splitSegment"
+                                Permissions = $validPermissions
+                            }
+                        }
+                    } catch {
+                        Write-Host "        Unable to check permissions for: $finalPath" -ForegroundColor Red
+                    }
+                }
+            }
+        }
+
+        # Print exploitable paths if any valid permissions are found
+        foreach ($pathEntry in $exploitablePaths) {
+            Write-Host "    Exploitable Path: $($pathEntry.Path)" -ForegroundColor Cyan
+            foreach ($perm in $pathEntry.Permissions) {
+                Write-Host "        $perm" -ForegroundColor White
+            }
+        }
+    }
+
+    # Retrieve all services with their binary paths
+    try {
+        $services = Get-CimInstance Win32_Service | Where-Object { $_.PathName }
+
+        foreach ($service in $services) {
+            $cleanedPath = $service.PathName -replace '\s+[-/].*$', ''
+            $cleanedPath = $cleanedPath.Trim()
+
+            if (Is-UnquotedPath $cleanedPath) {
+                Write-Host "`n[+] Service: $($service.Name)" -ForegroundColor Cyan
+                Write-Host "    Binary Path: $cleanedPath" -ForegroundColor Yellow
+
+                # Run icacls and filter permissions
+                Check-ICacls -Path $cleanedPath
+            }
+        }
+    } catch {
+        Write-Host "Unable to fetch services. Check your permissions." -ForegroundColor Red
+    }
+}
+
+function Get-ServiceBinaryHijacking {
+    Write-Host "`n===================================================" -ForegroundColor Cyan
     write-host "                                                   " -backgroundcolor white
     Write-Host "          Service Binary Hijacking Check           " -ForegroundColor DarkBlue -backgroundcolor white
     write-host "                                                   " -backgroundcolor white
@@ -1362,6 +1499,7 @@ if ($EnableRunningProcesses) { Get-RunningProcesses }
 if ($EnableBrowserCredentials) { Get-BrowserCredentials }
 if ($EnableStartupPrograms) { Get-StartupPrograms }
 if ($EnableScheduledTasks) { Get-ScheduledTasks }
+if ($EnableUnquotedServicePaths) { Get-UnquotedServicePaths }
 if ($EnableServiceBinaryHijacking) { Get-ServiceBinaryHijacking }
 if ($EnableDLLHijacking) { Get-DLLHijacking }
 write-host "`n" -NoNewLine
