@@ -18,21 +18,8 @@ To identify tasks that may lead to privilege escalation, run **WinRecon.ps1**:
 2. **Option 17**: Enumerate scheduled tasks and check for writable executables.
 
 #### Example Output:
-```plaintext
-===================================================
+![image](https://github.com/user-attachments/assets/3bcbb1bf-3fe7-442a-9b6e-3171b6b4d3fb)
 
-              Scheduled Tasks Check
-
-===================================================
-
-[+] Task Name: \Microsoft\CacheCleanup
-    Author: CLIENTWK220\daveadmin
-    Task To Run: C:\Users\steve\Pictures\BackendCacheCleanup.exe
-    Run As User: daveadmin
-    Status: Ready
-    Next Run Time: 2024-06-01 12:00:00 AM
-    Permissions: Writable
-```
 
 In this example, the scheduled task **\Microsoft\CacheCleanup**:
 - Runs as `daveadmin` (a privileged user).
