@@ -14,7 +14,7 @@ $EnableNetworkConnections = $true
 $EnableRunningProcesses = $true
 $EnableBrowserCredentials = $true
 $EnableStartupPrograms = $true
-$EnableScheduledTasks = $true
+$EnableScheduledTaskEscalation = $true
 $EnableUnquotedServicePaths = $true
 $EnableServiceBinaryHijacking = $true
 $EnableDLLHijacking = $true
@@ -95,7 +95,7 @@ switch ($ReconMode) {
         $EnableRunningProcesses = $false
         $EnableBrowserCredentials = $false
         $EnableStartupPrograms = $false
-        $EnableScheduledTasks = $false
+        $EnableScheduledTaskEscalation = $false
         $EnableUnquotedServicePaths = $false
         $EnableServiceBinaryHijacking = $false
         $EnableDLLHijacking = $false
@@ -118,7 +118,7 @@ switch ($ReconMode) {
         Write-Host "13. Running Processes"
         Write-Host "14. Browser Credentials"
         Write-Host "15. Startup Programs"
-        Write-Host "16. Scheduled Tasks"
+        Write-Host "16. Scheduled Task Escalation"
         Write-Host "17. Unquoted Service Paths"
         Write-Host "18. Service Binary Hijacking"
         Write-Host "19. DLL Hijacking"
@@ -146,7 +146,7 @@ switch ($ReconMode) {
                     "13" { $EnableRunningProcesses = $true }
                     "14" { $EnableBrowserCredentials = $true }
                     "15" { $EnableStartupPrograms = $true }
-                    "16" { $EnableScheduledTasks = $true }
+                    "16" { $EnableScheduledTaskEscalation = $true }
                     "17" { $EnableUnquotedServicePaths = $true }
                     "18" { $EnableServiceBinaryHijacking = $true }
                     "19" { $EnableDLLHijacking = $true }
@@ -173,7 +173,7 @@ switch ($ReconMode) {
         Write-Host "13. Running Processes"
         Write-Host "14. Browser Credentials"
         Write-Host "15. Startup Programs"
-        Write-Host "16. Scheduled Tasks"
+        Write-Host "16. Scheduled Task Escalation"
         Write-Host "17. Unquoted Service Paths"
         Write-Host "18. Service Binary Hijacking"
         Write-Host "19. DLL Hijacking"
@@ -200,7 +200,7 @@ switch ($ReconMode) {
                     "13" { $EnableRunningProcesses = $false }
                     "14" { $EnableBrowserCredentials = $false }
                     "15" { $EnableStartupPrograms = $false }
-                    "16" { $EnableScheduledTasks = $false }
+                    "16" { $EnableScheduledTaskEscalation = $false }
                     "17" { $EnableUnquotedServicePaths = $false }
                     "18" { $EnableServiceBinaryHijacking = $false }
                     "19" { $EnableDLLHijacking = $false }
@@ -1080,22 +1080,160 @@ function Get-StartupPrograms {
     }
 }
 
-function Get-ScheduledTasks {
-    write-host "`n===================================================" -foregroundcolor cyan
-    write-host "                                                   " -backgroundcolor white
-    write-host "                  Scheduled Tasks                  " -foregroundcolor darkblue -backgroundcolor white
-    write-host "                                                   " -backgroundcolor white
-    write-host "===================================================" -foregroundcolor cyan
+function Get-ScheduledTaskEscalation {
+    Write-Host "`n===================================================" -ForegroundColor Cyan
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "             Scheduled Task Escalation             " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Scheduled_Task_Escalation.md" -ForegroundColor Cyan
+
+# Function to calculate task frequency
+    function Calculate-TaskFrequency {
+        param ($NextRunTime, $LastRunTime)
+        try {
+            $nextRun = [datetime]::ParseExact($NextRunTime, "M/d/yyyy h:mm:ss tt", $null)
+            $lastRun = [datetime]::ParseExact($LastRunTime, "M/d/yyyy h:mm:ss tt", $null)
+            $difference = $nextRun - $lastRun
+
+            $output = ""
+            if ($difference.Days -gt 0) { $output += "$($difference.Days) Days " }
+            if ($difference.Hours -gt 0) { $output += "$($difference.Hours) Hours " }
+            if ($difference.Minutes -gt 0) { $output += "$($difference.Minutes) Minutes " }
+            if ($difference.Seconds -gt 0 -and $difference.Minutes -eq 0) { $output += "$($difference.Seconds) Seconds " }
+            return $output.Trim()
+        } catch {
+            return "Unknown Frequency"
+        }
+    }
+
+    # Function to resolve environment variables
+    function Resolve-EnvironmentVariables {
+        param ($path)
+        try {
+            return [System.Environment]::ExpandEnvironmentVariables($path)
+        } catch {
+            return $path
+        }
+    }
+
+    # Function to sanitize TaskToRun path and run icacls
+    function Check-ScheduledTaskPermissions {
+        param ($TaskToRun)
+
+        # Resolve environment variables and trim everything after the first space
+        $resolvedPath = Resolve-EnvironmentVariables $TaskToRun
+        $exePath = $resolvedPath -split ' ' | Select-Object -First 1
+
+        # Early return if path is invalid
+        if (-not (Test-Path $exePath)) {
+            return $false
+        }
+
+        $includePermissionsRegex = ':(.*\b[WF]\b.*)'
+
+        # Get the current user's groups
+        $userIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $userGroups = $userIdentity.Groups | ForEach-Object { $_.Translate([System.Security.Principal.NTAccount]).Value }
+        $userGroups += $userIdentity.Name
+
+        $filteredPermissions = @()
+        try {
+            $icaclsOutput = icacls $exePath 2>&1 | Where-Object {
+                $_ -notmatch "Successfully processed" -and $_ -match $includePermissionsRegex
+            }
+
+            foreach ($line in $icaclsOutput) {
+                # Extract the group name before the colon
+                $groupName = ($line -split ':')[0].Trim()
+                if ($userGroups -contains $groupName) {
+                    $filteredPermissions += ($line -replace [regex]::Escape($exePath), '').Trim()
+                }
+            }
+
+            if ($filteredPermissions) {
+                return $filteredPermissions
+            }
+        } catch { }
+
+        return $false
+    }
 
     try {
-        Get-ScheduledTask | Select-Object TaskName, State, TaskPath | Format-Table -AutoSize
+        $schtasksOutput = schtasks /query /fo LIST /v 2>&1
+        if (-not $schtasksOutput) {
+            Write-Host "No scheduled tasks found or permission denied." -ForegroundColor Red
+            return
+        }
+
+        $taskRegex = @{
+            TaskName       = 'TaskName:\s+(.+)'
+            TaskToRun      = 'Task To Run:\s+(.+)'
+            NextRunTime    = 'Next Run Time:\s+(.+)'
+            LastRunTime    = 'Last Run Time:\s+(.+)'
+            Author         = 'Author:\s+(.+)'
+            RunAsUser      = 'Run As User:\s+(.+)'
+        }
+
+        $tasks = @()
+        $currentTask = @{ TaskName = ""; TaskToRun = ""; NextRunTime = ""; LastRunTime = ""; Author = ""; RunAsUser = "" }
+
+        foreach ($line in $schtasksOutput) {
+            if ($line -match $taskRegex.TaskName) { $currentTask.TaskName = $Matches[1] }
+            elseif ($line -match $taskRegex.TaskToRun) {
+                $resolvedPath = Resolve-EnvironmentVariables $Matches[1]
+                $currentTask.TaskToRun = $resolvedPath
+            }
+            elseif ($line -match $taskRegex.NextRunTime) { $currentTask.NextRunTime = $Matches[1] }
+            elseif ($line -match $taskRegex.LastRunTime) { $currentTask.LastRunTime = $Matches[1] }
+            elseif ($line -match $taskRegex.Author) { $currentTask.Author = $Matches[1] }
+            elseif ($line -match $taskRegex.RunAsUser) { $currentTask.RunAsUser = $Matches[1] }
+
+            if ($line -eq "") {
+                # Skip tasks where TaskToRun is a COM handler or invalid path
+                if ($currentTask.TaskToRun -notmatch '^{.*}$' -and $currentTask.TaskToRun -match '\.') {
+                    # Skip tasks where RunAsUser matches current user (strip domain)
+                    $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name -replace '.*\\', ''
+                    if ($currentTask.RunAsUser -ne $currentUser) {
+                        $tasks += [PSCustomObject]$currentTask
+                    }
+                }
+                $currentTask = @{ TaskName = ""; TaskToRun = ""; NextRunTime = ""; LastRunTime = ""; Author = ""; RunAsUser = "" }
+            }
+        }
+
+        # Remove duplicate tasks
+        $uniqueTasks = $tasks | Sort-Object -Property @{Expression = { "$($_.TaskName)|$($_.TaskToRun)|$($_.NextRunTime)|$($_.Author)|$($_.RunAsUser)" }} -Unique
+
+        foreach ($task in $uniqueTasks) {
+            $permissions = Check-ScheduledTaskPermissions -TaskToRun $task.TaskToRun
+
+            # Only display tasks with exploitable permissions
+            if ($permissions) {
+                Write-Host "`n[+] Task: $($task.TaskName)" -ForegroundColor Yellow
+                Write-Host "    Task To Run: $($task.TaskToRun)" -ForegroundColor Yellow
+
+                if ($task.NextRunTime -and $task.LastRunTime) {
+                    $frequency = Calculate-TaskFrequency -NextRunTime $task.NextRunTime -LastRunTime $task.LastRunTime
+                    Write-Host "    Task Runs Every: $frequency" -ForegroundColor White
+                }
+
+                Write-Host "    Author: $($task.Author)" -ForegroundColor White
+                Write-Host "        Run As User: $($task.RunAsUser)" -ForegroundColor Yellow
+                Write-Host "        [!] Exploitable Permissions Found:" -ForegroundColor Yellow
+                foreach ($perm in $permissions) {
+                    Write-Host "            $perm" -ForegroundColor Yellow
+                }
+            }
+        }
+
     } catch {
-        Write-Host "Unable to retrieve scheduled tasks." -ForegroundColor Red
+        Write-Host "An error occurred while retrieving scheduled tasks: $_" -ForegroundColor Red
     }
 }
 
 function Get-UnquotedServicePaths {
-    Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "`n===================================================" -ForegroundColor Cyan
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "             Unquoted Service Paths Check          " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
@@ -1494,7 +1632,7 @@ if ($EnableNetworkConnections) { Get-NetworkConnections }
 if ($EnableRunningProcesses) { Get-RunningProcesses }
 if ($EnableBrowserCredentials) { Get-BrowserCredentials }
 if ($EnableStartupPrograms) { Get-StartupPrograms }
-if ($EnableScheduledTasks) { Get-ScheduledTasks }
+if ($EnableScheduledTaskEscalation) { Get-ScheduledTaskEscalation }
 if ($EnableUnquotedServicePaths) { Get-UnquotedServicePaths }
 if ($EnableServiceBinaryHijacking) { Get-ServiceBinaryHijacking }
 if ($EnableDLLHijacking) { Get-DLLHijacking }
