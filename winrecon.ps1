@@ -495,8 +495,9 @@ function Get-EventViewerCredentials {
     Write-Host "===================================================" -ForegroundColor Cyan
 
     # Keywords to search for
-    $keywords = "(?i)(password|secret|authorization|token|basic|base64|credential)"
-    $excludeList = "(?i)(EventViewerCredentials|BrowserCredentials)"
+    $keywords = '(?i)(\$password|\$pass |\$securepassword|\$cred|password|-Password|Pass- |pass=|pwd=|securestring|plaintext|secret|apikey|accesskey|secretkey|privatekey|-p |-u |sshkey|identityfile|credentials|login|signin|unencrypted|securestring|plaintext|PSCredential|Get-Credential|Authorization:)'
+
+    $excludeList = '(?i)(EventViewerCredentials|BrowserCredentials|\$sensitiveFiles|_cmdletization_methodParameter|exploits +=|highlightKeywords = @|No credential files found for any browser.)'
 
     # Function to print lines with matched keyword highlighted
     function Highlight-Keyword {
