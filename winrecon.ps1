@@ -1392,20 +1392,18 @@ function Get-DLLHijacking {
 
     # Fetch installed software from the registry
     $installedSoftware = @()
-    $installedSoftware += Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue |
+    $installedSoftware += Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" -ErrorAction SilentlyContinue |
                           Select-Object DisplayName, PSChildName, DisplayVersion, InstallLocation
 
-    $installedSoftware += Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue |
+    $installedSoftware += Get-ItemProperty "HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" -ErrorAction SilentlyContinue |
                           Select-Object DisplayName, PSChildName, DisplayVersion, InstallLocation
 
-    # Iterate through installed software
     foreach ($software in $installedSoftware) {
         if (-not $software.InstallLocation) { continue } # Skip if InstallLocation is empty
 
         $isVulnerable = $false
         $vulnDLL = $null
 
-        # Check if the software matches a known vulnerable software
         foreach ($vuln in $vulnerableSoftware) {
             if (($software.DisplayName -match [regex]::Escape($vuln.Name) -or 
                  $software.PSChildName -match [regex]::Escape($vuln.Name)) -and 
@@ -1416,29 +1414,24 @@ function Get-DLLHijacking {
             }
         }
 
-        # Define the color based on vulnerability status
         $color = if ($isVulnerable) { "Yellow" } else { "White" }
 
-        # Output the software information
         Write-Host "`n[+] Program: $($software.DisplayName)" -ForegroundColor $color
         Write-Host "    Identifier: $($software.PSChildName)" -ForegroundColor $color
         Write-Host "    Version: $($software.DisplayVersion)" -ForegroundColor $color
         Write-Host "    Path: $($software.InstallLocation)" -ForegroundColor $color
 
-        # Check if the path is writable
         if (Is-PathWritable $software.InstallLocation) {
             Write-Host "    [!] Path is Writable" -ForegroundColor Yellow
         } else {
             Write-Host "    Path is Not Writable" -ForegroundColor White
         }
 
-        # If the program is vulnerable, display the DLL
         if ($isVulnerable -and $vulnDLL) {
             Write-Host "    Vulnerable DLL: $vulnDLL" -ForegroundColor Yellow
         }
     }
 
-    # Check OS version for vulnerabilities
     Write-Host "`n[+] Checking Operating System for Vulnerabilities..." -ForegroundColor Cyan
     try {
         $os = Get-CimInstance Win32_OperatingSystem
@@ -1449,10 +1442,9 @@ function Get-DLLHijacking {
             if ($vuln.Name -match "Microsoft Windows" -and $osVersion -match $vuln.Version) {
                 Write-Host "`n[+] OS: $osName" -ForegroundColor Yellow
                 Write-Host "    Version: $osVersion" -ForegroundColor Yellow
-                Write-Host "    Path: C:\Windows\" -ForegroundColor Yellow
+                Write-Host "    Path: C:\\Windows\\" -ForegroundColor Yellow
 
-                # Check if the Windows path is writable
-                if (Is-PathWritable "C:\Windows\") {
+                if (Is-PathWritable "C:\\Windows\\") {
                     Write-Host "    [!] Path is Writable" -ForegroundColor Yellow
                 } else {
                     Write-Host "    Path is Not Writable" -ForegroundColor White
@@ -1465,7 +1457,50 @@ function Get-DLLHijacking {
     } catch {
         Write-Host "Unable to check OS version and vulnerabilities." -ForegroundColor Red
     }
-}
+
+    # Additional code: Search for DLL hijacking within running services
+    Write-Host "`n[+] Checking Running Services for Potential DLL Hijacking..." -ForegroundColor Cyan
+    $commonPaths = @(
+         "\\Windows\\System32\\svchost.exe"
+         "\\Windows\\System32\\lsass.exe"
+         "\\Windows\\System32\\dllhost.exe"
+         "\\Windows\\System32\\msdtc.exe"
+         "\\Windows\\System32\\SearchIndexer.exe"
+         "\\Windows\\System32\\vm3dservice.exe"
+         "\\Windows\\System32\\SecurityHealthService.exe"
+         "\\Windows\\System32\\spoolsv.exe"
+         "\\Windows\\System32\\SgrmBroker.exe"
+         "\\ProgramData\\Microsoft\\Windows Defender\\"
+         "\\Program Files\\VMware\\VMware Tools\\VMware VGAuth\\VGAuthService.exe"
+	 "\\Program Files\\VMware\\VMware Tools\\vmtoolsd.exe"
+    )
+
+    try {
+        $services = Get-CimInstance -ClassName Win32_Service | Where-Object {
+            $_.State -eq "Running" -and
+            -not [string]::IsNullOrWhiteSpace($_.PathName) -and
+            ($_.PathName -notmatch ($commonPaths -join "|"))
+        }
+
+        foreach ($service in $services) {
+            $path = $service.PathName -replace '"', ''
+            $directoryPath = [System.IO.Path]::GetDirectoryName($path)
+
+            Write-Host "`n[+] Program: $($service.DisplayName)" -ForegroundColor White
+            Write-Host "    Identifier: $($service.ServiceName)" -ForegroundColor White
+            Write-Host "    Version: N/A" -ForegroundColor White
+            Write-Host "    Path: $path" -ForegroundColor White
+
+            if (Is-PathWritable $directoryPath) {
+                Write-Host "    [!] Directory is Writable" -ForegroundColor Yellow
+            } else {
+                Write-Host "    Directory is Not Writable" -ForegroundColor White
+            }
+        }
+    } catch {
+        Write-Host "Unable to enumerate running services." -ForegroundColor Red
+    }
+} 
 
 function Get-UserPrivileges {
     Write-Host "`n===================================================" -ForegroundColor Cyan
