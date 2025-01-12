@@ -285,7 +285,6 @@ function Get-SystemInfo {
 
 }
 
-# Determine if the machine is part of a domain by checking for the Get-ADUser cmdlet
 function Get-UserGroups {
     Write-Host "`n" -NoNewLine
     Write-Host "`n===================================================" -ForegroundColor Cyan
@@ -294,50 +293,55 @@ function Get-UserGroups {
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
 
-    if (Get-Command Get-ADUser -ErrorAction SilentlyContinue) {
-        Write-Host "`n" -NoNewLine
-        $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().SamAccountName
-        $currentGroups = (Get-ADUser $currentUser -Property MemberOf).MemberOf | ForEach-Object { (Get-ADGroup $_ -ErrorAction SilentlyContinue).Name } -join ', '
-        Write-Host "Current User: " -ForegroundColor Cyan -NoNewline
-        Write-Host "$currentUser" -ForegroundColor Cyan -NoNewline
-        Write-Host " - " -NoNewline
-        Write-Host $currentGroups -ForegroundColor White
-        Get-ADUser -Filter * -Property MemberOf, Enabled | Where-Object { $_.SamAccountName -ne $currentUser } | ForEach-Object { 
-            $user = $_.SamAccountName
-            $accountStatus = $_.Enabled
-            $groups = $_.MemberOf | ForEach-Object { (Get-ADGroup $_ -ErrorAction SilentlyContinue).Name } -join ', '
-            if (-not $accountStatus) {
-                Write-Host "[X] " -ForegroundColor Red -NoNewline
-                Write-Host "$user" -ForegroundColor Cyan -NoNewline
-            } else {
-                Write-Host "[A] " -ForegroundColor White -NoNewline
-                Write-Host "$user" -ForegroundColor Cyan -NoNewline
-            }
-            Write-Host " - " -NoNewline
-            Write-Host $groups -ForegroundColor White
+    Write-Host "`n" -NoNewLine
+    $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name.Split('\')[-1]
+    $currentGroups = (Get-LocalGroup | Where-Object { (Get-LocalGroupMember $_.Name -Member $currentUser -ErrorAction SilentlyContinue) }).Name -join ', '
+
+    # Current User
+    Write-Host "[+] Current User" -ForegroundColor Cyan
+    Write-Host "$currentUser" -ForegroundColor White -NoNewline
+    Write-Host " - " -NoNewline
+    Write-Host $currentGroups -ForegroundColor White
+    Write-Host "`n" -NoNewLine
+
+    # All Users on System
+    Write-Host "[+] All System Users" -ForegroundColor Cyan
+    Get-LocalUser | ForEach-Object { 
+        $user = $_.Name
+        $accountStatus = $_.Enabled
+        $groups = (Get-LocalGroup | Where-Object { (Get-LocalGroupMember $_.Name -Member $user -ErrorAction SilentlyContinue) }).Name -join ', '
+        if (-not $accountStatus) {
+    	Write-Host "$user" -ForegroundColor Red -NoNewline
+        } else {
+    	Write-Host "$user" -ForegroundColor White -NoNewline
         }
-        Write-Host "`n" -NoNewLine
-    } else {
-        Write-Host "`n" -NoNewLine
-        $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name.Split('\')[-1]
-        $currentGroups = (Get-LocalGroup | Where-Object { (Get-LocalGroupMember $_.Name -Member $currentUser -ErrorAction SilentlyContinue) }).Name -join ', '
-        Write-Host "[+] Current User" -ForegroundColor Cyan
-        Write-Host "$currentUser" -ForegroundColor White -NoNewline
         Write-Host " - " -NoNewline
-        Write-Host $currentGroups -ForegroundColor White
-	Write-Host "`n" -NoNewLine
-	Write-Host "[+] All Users" -ForegroundColor Cyan
-        Get-LocalUser | Where-Object { $_.Name -ne $currentUser } | ForEach-Object { 
-            $user = $_.Name
-            $accountStatus = $_.Enabled
-            $groups = (Get-LocalGroup | Where-Object { (Get-LocalGroupMember $_.Name -Member $user -ErrorAction SilentlyContinue) }).Name -join ', '
-            if (-not $accountStatus) {
-                Write-Host "$user" -ForegroundColor Red -NoNewline
-            } else {
-                Write-Host "$user" -ForegroundColor White -NoNewline
-            }
-            Write-Host " - " -NoNewline
-            Write-Host $groups -ForegroundColor White
+        Write-Host $groups -ForegroundColor White
+    }
+    Write-Host "`n" -NoNewLine
+  
+    # All Users on Domain
+    $netUserOutput = & net user /domain 2>&1
+    $outputLines = $netUserOutput -split "`r?`n"
+    if ($outputLines -join "`n" -notmatch "System error 1355 has occurred") {
+        $filteredLines = $outputLines | Where-Object {
+            $_ -notmatch "^(The request will be processed|User accounts for|^-+$|The command completed successfully|^\s*$)"
+        }
+        $usernames = $filteredLines -join ' ' -split '\s{2,}' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+        Write-Host "[+] All Domain Users" -ForegroundColor Cyan
+        foreach ($user in $usernames) {
+    	$netUserGroupOutput = & net user /domain $user 2>&1
+    	$startIndex = $netUserGroupOutput | ForEach-Object { $_ } | Select-String -Pattern "^Local Group Memberships" | Select-Object -ExpandProperty LineNumber -First 1 
+    	$startIndex = ($startIndex - 1)
+    	$filteredGroupLines = $netUserGroupOutput[$startIndex..($netUserGroupOutput.Length -1)]
+    	$formattedGroupOutput = $filteredGroupLines | ForEach-Object {
+                if ($_ -match '\s{2,}') {
+                    ($_ -split '\s{2,}', 2)[1].Trim() -replace '\s{2,}', ' | '
+                }
+    	}
+    	$groups = ($formattedGroupOutput | Where-Object { $_ -ne "" }) -join " | "
+    	$groups = $groups.Trim(" |")
+            Write-Host "$user - $groups"
         }
     }
 }
@@ -874,7 +878,6 @@ function Get-RunningProcesses {
         Write-Host "Unable to enumerate running processes." -ForegroundColor Red
     }
 }
-# Run the function
 
 function Get-BrowserCredentials {
     write-host "`n===================================================" -foregroundcolor cyan
@@ -1475,7 +1478,7 @@ function Get-DLLHijacking {
 	 "\\Program Files\\VMware\\VMware Tools\\vmtoolsd.exe"
     )
 
-    try {
+   try {
         $services = Get-CimInstance -ClassName Win32_Service | Where-Object {
             $_.State -eq "Running" -and
             -not [string]::IsNullOrWhiteSpace($_.PathName) -and
@@ -1487,8 +1490,8 @@ function Get-DLLHijacking {
             $directoryPath = [System.IO.Path]::GetDirectoryName($path)
 
             Write-Host "`n[+] Program: $($service.DisplayName)" -ForegroundColor White
-            Write-Host "    Identifier: $($service.ServiceName)" -ForegroundColor White
-            Write-Host "    Version: N/A" -ForegroundColor White
+            Write-Host "    AutoRun: $([bool]($service.StartMode -eq 'Auto') -replace 'True', 'On' -replace 'False', 'Off')" -ForegroundColor White
+            Write-Host "    Runs As: $($service.StartName)" -ForegroundColor White
             Write-Host "    Path: $path" -ForegroundColor White
 
             if (Is-PathWritable $directoryPath) {
@@ -1500,7 +1503,7 @@ function Get-DLLHijacking {
     } catch {
         Write-Host "Unable to enumerate running services." -ForegroundColor Red
     }
-} 
+}
 
 function Get-UserPrivileges {
     Write-Host "`n===================================================" -ForegroundColor Cyan
