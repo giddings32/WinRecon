@@ -340,11 +340,12 @@ function Get-UserGroups {
     	    $filteredGroupLines = $netUserGroupOutput[$startIndex..($netUserGroupOutput.Length -1)]
     	    $formattedGroupOutput = $filteredGroupLines | ForEach-Object {
                 if ($_ -match '\s{2,}') {
-                    ($_ -split '\s{2,}', 2)[1].Trim() -replace '\s{2,}', ' | '
+                    ($_ -split '\s{2,}', 2)[1].Trim() -replace '\s{2,}', ', '
                 }
     	    }
-    	    $groups = ($formattedGroupOutput | Where-Object { $_ -ne "" }) -join " | "
-    	    $groups = $groups.Trim(" |")
+    	    $groups = ($formattedGroupOutput | Where-Object { $_ -ne "" }) -join ", "
+    	    $groups = $groups.Trim(", ")
+	    $groups = $groups -replace "\*", ""
 	    if ($groups -match "Domain Admins") {
                 Write-Host "$user" -ForegroundColor Green -NoNewLine
 		Write-Host " - $groups"
@@ -363,6 +364,34 @@ function Get-UserGroups {
 	Write-Host "[+] All Domain Groups" -ForegroundColor Cyan
 	foreach ($group in $groupNames) {
             # All Users for Each Domain Group
+	    $group = $group -replace "\*", ""
+	    $netGroupUserOutput = net group "`"$group`"" /domain 2>&1
+    	    $startIndex = $netGroupUserOutput | ForEach-Object { $_ } | Select-String -Pattern "^Members" | Select-Object -ExpandProperty LineNumber -First 1 
+    	    $filteredNetGroupUserLines = $netGroupUserOutput[$startIndex..($netGroupUserOutput.Length -1)]
+    	    $formattedNetGroupUserOutput = $filteredNetGroupUserLines | ForEach-Object {
+                if ($_ -match '\s{2,}') {
+                    ($_ -split '\s{2,}', 2) -replace '\s{2,}', ', '
+                }
+    	    }
+	    $groupUsers = ($formattedNetGroupUserOutput | Where-Object { $_ -ne "" }) -join ", "
+	    $groupUsers = $groupUsers.Trim(", ")
+	    $groupUsers = $groupUsers -replace '\,\s*\,', ','
+	    if ($group -match "Domain Admins") {
+                if ([string]::IsNullOrWhiteSpace($groupUsers)) {
+		} else {
+		    Write-Host "$group" -ForegroundColor Green -NoNewLine
+		    Write-Host " - $groupUsers"
+		}
+	    } else {
+		if ([string]::IsNullOrWhiteSpace($groupUsers)) {
+                } else {
+                    Write-Host "$group" -ForegroundColor White -NoNewLine
+		    Write-Host " - $groupUsers"
+		}
+	    }
+        }
+        foreach ($group in $groupNames) {
+            # All Users for Each Domain Group
 	    $group = $group -replace "^\*", ""
 	    $netGroupUserOutput = net group "`"$group`"" /domain 2>&1
     	    $startIndex = $netGroupUserOutput | ForEach-Object { $_ } | Select-String -Pattern "^Members" | Select-Object -ExpandProperty LineNumber -First 1 
@@ -375,23 +404,10 @@ function Get-UserGroups {
 	    $groupUsers = ($formattedNetGroupUserOutput | Where-Object { $_ -ne "" }) -join " | "
 	    $groupUsers = $groupUsers.Trim(" |")
 	    $groupUsers = $groupUsers -replace '\|\s*\|', '|'
-	    if ($group -match "Domain Admins") {
-                if ([string]::IsNullOrWhiteSpace($groupUsers)) {
-                    Write-Host "$group -" -NoNewLine
-	    	    Write-Host " No Users Assigned" -ForegroundColor Red
-		} else {
-		    Write-Host "$group" -ForegroundColor Green -NoNewLine
-		    Write-Host " - $groupUsers"
-		}
-	    } else {
-		if ([string]::IsNullOrWhiteSpace($groupUsers)) {
-                    Write-Host "$group - No Users Assigned" -ForegroundColor DarkGray
-                } else {
-                    Write-Host "$group" -ForegroundColor White -NoNewLine
-		    Write-Host " - $groupUsers"
-		}
+            if ([string]::IsNullOrWhiteSpace($groupUsers)) {
+                Write-Host "$group - No Users Assigned" -ForegroundColor DarkGray
 	    }
-        }
+	}
     }
 }
 
