@@ -320,28 +320,38 @@ function Get-UserGroups {
     }
     Write-Host "`n" -NoNewLine
   
-    # All Users on Domain
+    # IF Joined to Domain
     $netUserOutput = & net user /domain 2>&1
     $outputLines = $netUserOutput -split "`r?`n"
     if ($outputLines -join "`n" -notmatch "System error 1355 has occurred") {
-        $filteredLines = $outputLines | Where-Object {
+        
+	# All Domain Users
+	$filteredLines = $outputLines | Where-Object {
             $_ -notmatch "^(The request will be processed|User accounts for|^-+$|The command completed successfully|^\s*$)"
         }
         $usernames = $filteredLines -join ' ' -split '\s{2,}' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
         Write-Host "[+] All Domain Users" -ForegroundColor Cyan
         foreach ($user in $usernames) {
-    	$netUserGroupOutput = & net user /domain $user 2>&1
-    	$startIndex = $netUserGroupOutput | ForEach-Object { $_ } | Select-String -Pattern "^Local Group Memberships" | Select-Object -ExpandProperty LineNumber -First 1 
-    	$startIndex = ($startIndex - 1)
-    	$filteredGroupLines = $netUserGroupOutput[$startIndex..($netUserGroupOutput.Length -1)]
-    	$formattedGroupOutput = $filteredGroupLines | ForEach-Object {
+       	    
+            # All Domain Groups for Each User
+	    $netUserGroupOutput = & net user /domain $user 2>&1
+    	    $startIndex = $netUserGroupOutput | ForEach-Object { $_ } | Select-String -Pattern "^Local Group Memberships" | Select-Object -ExpandProperty LineNumber -First 1 
+    	    $startIndex = ($startIndex - 1)
+    	    $filteredGroupLines = $netUserGroupOutput[$startIndex..($netUserGroupOutput.Length -1)]
+    	    $formattedGroupOutput = $filteredGroupLines | ForEach-Object {
                 if ($_ -match '\s{2,}') {
                     ($_ -split '\s{2,}', 2)[1].Trim() -replace '\s{2,}', ' | '
                 }
-    	}
-    	$groups = ($formattedGroupOutput | Where-Object { $_ -ne "" }) -join " | "
-    	$groups = $groups.Trim(" |")
-            Write-Host "$user - $groups"
+    	    }
+    	    $groups = ($formattedGroupOutput | Where-Object { $_ -ne "" }) -join " | "
+    	    $groups = $groups.Trim(" |")
+	    if ($groups -match "Domain Admins") {
+                Write-Host "$user" -ForegroundColor Yellow -NoNewLine
+		Write-Host "- $groups"
+            } else {
+                Write-Host "$user" -ForegroundColor White -NoNewLine
+		Write-Host "- $groups"
+	    }
         }
     }
 }
