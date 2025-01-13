@@ -1806,6 +1806,277 @@ function Get-LDAP {
             Write-Host $entry.Text -ForegroundColor $entry.Color
         }
     }
+        
+    Write-Host "`n" -NoNewLine
+    Write-Host "`n[+] LDAP User Details" -ForegroundColor Cyan
+    
+    # Initialize Active Directory details
+    $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    $PDC = $domainObj.PdcRoleOwner.Name
+    $DN = ([adsi]'').distinguishedName
+    $LDAP = "LDAP://$PDC/$DN"
+    $direntry = New-Object System.DirectoryServices.DirectoryEntry($LDAP)
+    $dirsearcher = New-Object System.DirectoryServices.DirectorySearcher($direntry)
+    
+    # Set the filter to retrieve all users in the domain
+    $dirsearcher.Filter = "(&(objectCategory=person)(objectClass=user))"
+    
+    # Fetch all users
+    $users = $dirsearcher.FindAll()
+    
+    # Blacklist of attributes to exclude
+    $blacklistAttributes = @(
+        "codepage",
+        "objectcategory",
+        "usnchanged",
+        "instancetype",
+        "usncreated",
+        "objectguid",
+        "adspath",
+        "countrycode",
+        "primarygroupid",
+        "objectsid",
+        "lastlogoff",
+        "dscorepropagationdata",
+        "distinguishedname",
+        "samaccountname",
+        "samaccounttype",
+        "badpwdcount",
+        "memberof"
+    )
+    
+    # Function to convert FileTime to UTC date
+    function Convert-FileTime {
+        param ([string]$fileTimeValue)
+    
+        # Check for "Never" (maximum 64-bit integer)
+        if ($fileTimeValue -eq "9223372036854775807") {
+            return "Never"
+        }
+    
+        if ($fileTimeValue -eq 0) {
+            return "Never"
+        }
+    
+        try {
+            return [datetime]::FromFileTimeUtc([int64]$fileTimeValue).ToString("yyyy-MM-dd HH:mm:ss")
+        } catch {
+            return "Invalid FileTime"
+        }
+    }
+    
+    # Function to decode useraccountcontrol
+    function Decode-UserAccountControl {
+        param ([int]$value)
+    
+        $flags = @{
+            0x0001 = "SCRIPT"
+            0x0002 = "ACCOUNTDISABLE"
+            0x0008 = "HOMEDIR_REQUIRED"
+            0x0010 = "LOCKOUT"
+            0x0020 = "PASSWD_NOTREQD"
+            0x0040 = "PASSWD_CANT_CHANGE"
+            0x0080 = "ENCRYPTED_TEXT_PWD_ALLOWED"
+            0x0100 = "TEMP_DUPLICATE_ACCOUNT"
+            0x0200 = "NORMAL_ACCOUNT"
+            0x0800 = "INTERDOMAIN_TRUST_ACCOUNT"
+            0x1000 = "WORKSTATION_TRUST_ACCOUNT"
+            0x2000 = "SERVER_TRUST_ACCOUNT"
+            0x10000 = "DONT_EXPIRE_PASSWORD"
+            0x20000 = "MNS_LOGON_ACCOUNT"
+            0x40000 = "SMARTCARD_REQUIRED"
+            0x80000 = "TRUSTED_FOR_DELEGATION"
+            0x100000 = "NOT_DELEGATED"
+            0x200000 = "USE_DES_KEY_ONLY"
+            0x400000 = "DONT_REQUIRE_PREAUTH"
+            0x800000 = "PASSWORD_EXPIRED"
+            0x1000000 = "TRUSTED_TO_AUTH_FOR_DELEGATION"
+        }
+    
+        $decodedFlags = @()
+    
+        foreach ($key in $flags.Keys) {
+            if ($value -band $key) {
+                $decodedFlags += $flags[$key]
+            }
+        }
+    
+        return $decodedFlags -join "; "
+    }
+    
+    # Display user details
+    foreach ($user in $users) {
+        $userProps = $user.Properties
+        $username = $userProps["samaccountname"] | Select-Object -First 1
+    
+        # Header with separator and username
+        Write-Host "`n    [-] ${username}" -ForegroundColor Cyan
+    
+        # Iterate through all attributes, excluding blacklisted ones
+        foreach ($propName in $userProps.PropertyNames) {
+            if ($blacklistAttributes -notcontains $propName) {
+                $propValues = $userProps[$propName] -join "; "
+                if ($propName -in @("badpasswordtime", "pwdlastset", "lastlogontimestamp", "lastlogon", "accountexpires")) {
+                    # Convert FileTime attributes to readable UTC date
+                    $convertedValue = Convert-FileTime -fileTimeValue $propValues
+                    Write-Host "        ${propName}: ${convertedValue}" -ForegroundColor White
+                } elseif ($propName -eq "useraccountcontrol") {
+                    # Decode useraccountcontrol
+                    $decodedFlags = Decode-UserAccountControl -value $propValues
+                    Write-Host "        ${propName}: ${decodedFlags}" -ForegroundColor White
+                } elseif ($propValues) {
+                    Write-Host "        ${propName}: ${propValues}" -ForegroundColor White
+                } else {
+                    Write-Host "        ${propName}: Not Set" -ForegroundColor DarkGray
+                }
+            }
+        }
+    }
+
+    Write-Host "`n" -NoNewLine
+    Write-Host "`n[+] LDAP Computer Details" -ForegroundColor Cyan
+    
+    # Initialize Active Directory details
+    $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    $PDC = $domainObj.PdcRoleOwner.Name
+    $DN = ([adsi]'').distinguishedName
+    $LDAP = "LDAP://$PDC/$DN"
+    $direntry = New-Object System.DirectoryServices.DirectoryEntry($LDAP)
+    $dirsearcher = New-Object System.DirectoryServices.DirectorySearcher($direntry)
+    
+    # Set the filter to retrieve all computers in the domain
+    $dirsearcher.Filter = "(&(objectCategory=computer))"
+    
+    # Fetch all computers
+    $computers = $dirsearcher.FindAll()
+    
+    # Blacklist of attributes to exclude
+    $blacklistAttributes = @(
+        "codepage",
+        "objectcategory",
+        "usnchanged",
+        "instancetype",
+        "usncreated",
+        "objectguid",
+        "adspath",
+        "countrycode",
+        "primarygroupid",
+        "objectsid",
+        "lastlogoff",
+        "dscorepropagationdata",
+        "distinguishedname",
+        "samaccountname",
+        "samaccounttype",
+        "badpwdcount",
+        "memberof"
+    )
+    
+    # Function to convert FileTime to UTC date
+    function Convert-FileTime {
+        param ([string]$fileTimeValue)
+    
+        # Check for "Never" (maximum 64-bit integer)
+        if ($fileTimeValue -eq "9223372036854775807") {
+            return "Never"
+        }
+    
+        if ($fileTimeValue -eq 0) {
+            return "Never"
+        }
+    
+        try {
+            return [datetime]::FromFileTimeUtc([int64]$fileTimeValue).ToString("yyyy-MM-dd HH:mm:ss")
+        } catch {
+            return "Invalid FileTime"
+        }
+    }
+    
+    # Function to decode useraccountcontrol
+    function Decode-UserAccountControl {
+        param ([int]$value)
+    
+        $flags = @{
+            0x0001 = "SCRIPT"
+            0x0002 = "ACCOUNTDISABLE"
+            0x0008 = "HOMEDIR_REQUIRED"
+            0x0010 = "LOCKOUT"
+            0x0020 = "PASSWD_NOTREQD"
+            0x0040 = "PASSWD_CANT_CHANGE"
+            0x0080 = "ENCRYPTED_TEXT_PWD_ALLOWED"
+            0x0100 = "TEMP_DUPLICATE_ACCOUNT"
+            0x0200 = "NORMAL_ACCOUNT"
+            0x0800 = "INTERDOMAIN_TRUST_ACCOUNT"
+            0x1000 = "WORKSTATION_TRUST_ACCOUNT"
+            0x2000 = "SERVER_TRUST_ACCOUNT"
+            0x10000 = "DONT_EXPIRE_PASSWORD"
+            0x20000 = "MNS_LOGON_ACCOUNT"
+            0x40000 = "SMARTCARD_REQUIRED"
+            0x80000 = "TRUSTED_FOR_DELEGATION"
+            0x100000 = "NOT_DELEGATED"
+            0x200000 = "USE_DES_KEY_ONLY"
+            0x400000 = "DONT_REQUIRE_PREAUTH"
+            0x800000 = "PASSWORD_EXPIRED"
+            0x1000000 = "TRUSTED_TO_AUTH_FOR_DELEGATION"
+        }
+    
+        $decodedFlags = @()
+    
+        foreach ($key in $flags.Keys) {
+            if ($value -band $key) {
+                $decodedFlags += $flags[$key]
+            }
+        }
+    
+        return $decodedFlags -join "; "
+    }
+    
+    # Display computer details
+    foreach ($computer in $computers) {
+        $computerProps = $computer.Properties
+        $computerName = $computerProps["name"] | Select-Object -First 1
+    
+        # Header with separator and computer name
+        Write-Host "`n    [-] ${computerName}" -ForegroundColor Cyan
+    
+        # Get sorted property names
+        $sortedPropertyNames = $computerProps.PropertyNames | Sort-Object
+    
+        # Iterate through sorted attributes, excluding blacklisted ones
+        foreach ($propName in $sortedPropertyNames) {
+            if ($blacklistAttributes -notcontains $propName) {
+                $propValues = $computerProps[$propName] -join "; "
+    
+                if ($propName -in @("lastlogontimestamp", "lastlogon", "pwdlastset", "accountexpires", "badpasswordtime")) {
+                    # Convert FileTime attributes to readable UTC date
+                    $convertedValue = Convert-FileTime -fileTimeValue $propValues
+                    Write-Host "        ${propName}: ${convertedValue}" -ForegroundColor White
+                } elseif ($propName -eq "useraccountcontrol") {
+                    # Decode useraccountcontrol
+                    $decodedFlags = Decode-UserAccountControl -value $propValues
+                    Write-Host "        ${propName}: ${decodedFlags}" -ForegroundColor White
+                } elseif ($propName -eq "serviceprincipalname") {
+                    # Clean up servicePrincipalName by splitting and categorizing
+                    $spns = $propValues -split "; "
+                    Write-Host "        ${propName}: " -ForegroundColor White
+                    foreach ($spn in $spns) {
+                        if ($spn -like "HOST/*") {
+                            Write-Host "            [HOST]:  $spn" -ForegroundColor White
+                        } elseif ($spn -like "ldap/*") {
+                            Write-Host "            [LDAP]:  $spn" -ForegroundColor White
+                        } elseif ($spn -like "DNS/*") {
+                            Write-Host "            [DNS]:   $spn" -ForegroundColor White
+                        } else {
+                            Write-Host "            [OTHER]: $spn" -ForegroundColor White
+                        }
+                    }
+                } elseif ($propValues) {
+                    Write-Host "        ${propName}: ${propValues}" -ForegroundColor White
+                } else {
+                    Write-Host "        ${propName}: Not Set" -ForegroundColor DarkGray
+                }
+            }
+        }
+    }
 }
 
 # Call enabled functions silently
