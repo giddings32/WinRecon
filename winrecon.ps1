@@ -18,6 +18,7 @@ $EnableUnquotedServicePaths = $true
 $EnableServiceBinaryHijacking = $true
 $EnableDLLHijacking = $true
 $EnableUserPrivileges = $true
+$EnableLDAP = $true
 
 # Initial Menu for Recon Mode
 do {
@@ -43,7 +44,7 @@ function Get-ValidUserInput {
 
     # Ensure valid options are provided, or default to numbers 1-15
     if (-not $ValidOptions) {
-        $ValidOptions = 1..19
+        $ValidOptions = 1..20
     }
 
     do {
@@ -99,8 +100,9 @@ switch ($ReconMode) {
         $EnableServiceBinaryHijacking = $false
         $EnableDLLHijacking = $false
         $EnableUserPrivileges = $false
-
-        # Ask user which functions to enable
+        $EnableLDAP = $false
+        
+	# Ask user which functions to enable
         Write-Host "`n" -NoNewLine
         Write-Host "Select the functions to ENABLE:"
         Write-Host " 1. System Info"
@@ -122,9 +124,10 @@ switch ($ReconMode) {
         Write-Host "17. Service Binary Hijacking"
         Write-Host "18. DLL Hijacking"
         Write-Host "19. User Privileges"
+        Write-Host "20. LDAP"
         Write-Host "`n" -NoNewLine
 
-        $enableInput = Get-ValidUserInput "Enter numbers 1-19 separated by commas" -ValidOptions $validOptions
+        $enableInput = Get-ValidUserInput "Enter numbers 1-20 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($enableInput -join ', ')"
 
         if ($enableInput) {
@@ -150,6 +153,7 @@ switch ($ReconMode) {
                     "17" { $EnableServiceBinaryHijacking = $true }
                     "18" { $EnableDLLHijacking = $true }
                     "19" { $EnableUserPrivileges = $true }
+                    "20" { $EnableLDAP = $true }
                 }
             }
         }
@@ -177,8 +181,9 @@ switch ($ReconMode) {
         Write-Host "17. Service Binary Hijacking"
         Write-Host "18. DLL Hijacking"
         Write-Host "19. User Privileges"
+	Write-Host "20. LDAP"
         Write-Host "`n" -NoNewLine
-        $disableInput = Get-ValidUserInput "Enter numbers 1-19 separated by commas" -ValidOptions $validOptions
+        $disableInput = Get-ValidUserInput "Enter numbers 1-20 separated by commas" -ValidOptions $validOptions
         Write-Host "You selected to enable the following options: $($disableInput -join ', ')"
 
         if ($disableInput) {
@@ -204,6 +209,7 @@ switch ($ReconMode) {
                     "17" { $EnableServiceBinaryHijacking = $false }
                     "18" { $EnableDLLHijacking = $false }
                     "19" { $EnableUserPrivileges = $false }
+	            "20" { $EnableLDAP = $false }
                 }
             }
         }
@@ -282,6 +288,20 @@ function Get-SystemInfo {
     $systemType = $systemInfo.OSArchitecture
     Write-Host "Version: $($systemInfo.Caption) [$versionName] $systemType" -ForegroundColor White
     Write-Host "Build Number: $($systemInfo.Version) [$buildNumber]" -ForegroundColor White
+    
+    # Active Directory Info
+    $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    $domainName = $domainObj.Name
+    $domainPDCOwner = $domainObj.PdcRoleOwner.Name
+    $domainClass = ([adsi]'').distinguishedName
+    $ldapPath = "LDAP://$domainPDCOwner/$domainClass"
+    if ($domainObj -notmatch "Current security context is not associated with an Active Directory") {
+        Write-Host "`n" -NoNewline
+	Write-Host "Domain: $domainName"
+	Write-Host "Primary Domain Controller: $domainPDCOwner"
+	Write-Host "Domain Class: $domainClass"
+	$ldapPath
+    }
 
 }
 
@@ -408,6 +428,7 @@ function Get-UserGroups {
                 Write-Host "$group - No Users Assigned" -ForegroundColor DarkGray
 	    }
 	}
+        
     }
 }
 
@@ -1676,8 +1697,120 @@ function Get-UserPrivileges {
     }
 }
 
+function Get-LDAP {
+    Write-Host "`n" -NoNewLine
+    Write-Host "`n===================================================" -ForegroundColor Cyan
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "                       LDAP                        " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                                                   " -BackgroundColor White
+    Write-Host "===================================================" -ForegroundColor Cyan
 
-
+    # Active Directory Info
+    Write-Host "`n" -NoNewLine
+    Write-Host "[+] LDAP Nested Groups" -ForegroundColor Cyan
+    function Process-Group {
+        param (
+            [string]$groupName,
+            [System.Collections.ArrayList]$processedGroups,
+            [System.Collections.ArrayList]$allGroups,
+            $ldapDirSearcher,
+            [int]$indentLevel = 1
+        )
+    
+        if ($processedGroups -contains $groupName) {
+            # Skip already processed groups to prevent infinite loops
+            return
+        }
+    
+        # Mark this group as processed
+        $processedGroups.Add($groupName) > $null  # Suppress output
+    
+        # Indent based on the level in the hierarchy
+        $indent = " " * ($indentLevel * 4)
+    
+        # Search for the group in AD to fetch its members
+        $ldapDirSearcher.Filter = "(&(objectCategory=group)(name=$groupName))"
+        $result = $ldapDirSearcher.FindOne()
+    
+        if ($result) {
+            $groupMembers = $result.Properties["member"]
+    
+            if ($groupMembers -and $groupMembers.Count -gt 0) {
+                # Display the group name in CYAN
+                Write-Host "$indent[-] $groupName" -ForegroundColor Cyan
+    
+                # Separate members into non-groups and groups
+                $nonGroups = @()
+                $nestedGroups = @()
+    
+                foreach ($mem in $groupMembers) {
+                    $memName = $mem -replace "CN=", "" -replace ",.*", ""
+    
+                    if ($allGroups -contains $memName) {
+                        $nestedGroups += $memName
+                    } else {
+                        $nonGroups += $memName
+                    }
+                }
+    
+                # Display non-groups first
+                foreach ($mem in $nonGroups) {
+                    Write-Host "$indent    $mem"
+                }
+    
+                # Recursively process nested groups
+                foreach ($group in $nestedGroups) {
+                    Process-Group -groupName $group -processedGroups $processedGroups -allGroups $allGroups -ldapDirSearcher $ldapDirSearcher -indentLevel ($indentLevel + 1)
+                }
+            } else {
+                # Display the group name in DARKGRAY if it has no members
+                Write-Host "$indent[-] $groupName (Empty)" -ForegroundColor DarkGray
+            }
+        } else {
+            Write-Host "$indent    Group not found in AD"
+        }
+    }
+    
+    # Main script logic
+    $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    
+    if ($domainObj -notmatch "Current security context is not associated with an Active Directory") {
+        $domainPDCOwner = $domainObj.PdcRoleOwner.Name
+        $domainClass = ([adsi]'').distinguishedName
+        $ldapPath = "LDAP://$domainPDCOwner/$domainClass"
+        $ldapDirEntry = New-Object System.DirectoryServices.DirectoryEntry($ldapPath)
+        $ldapDirSearcher = New-Object System.DirectoryServices.DirectorySearcher($ldapDirEntry)
+        $ldapDirSearcher.Filter = "objectCategory=group"
+        $ldapResult = $ldapDirSearcher.FindAll()
+    
+        # Use an ArrayList for dynamic resizing
+        $allGroups = New-Object System.Collections.ArrayList
+        foreach ($obj in $ldapResult) {
+            $groupNames = $obj.Properties["name"]
+            if ($groupNames) {
+                foreach ($name in $groupNames) {
+                    $allGroups.Add($name) > $null  # Suppress output
+                }
+            }
+        }
+    
+        # Initialize a processed group tracker to avoid infinite recursion
+        $processedGroups = New-Object System.Collections.ArrayList
+    
+        # Start processing each group
+        foreach ($groupName in $allGroups) {
+            $groupOutputBefore = $false  # Track if any meaningful output is produced
+    
+            Process-Group -groupName $groupName -processedGroups $processedGroups -allGroups $allGroups -ldapDirSearcher $ldapDirSearcher
+            
+            # Add a blank line only if meaningful output was produced
+            if ($groupOutputBefore) {
+                Write-Host ""
+            }
+        }
+    }
+}
+    
 # Call enabled functions silently
 if ($EnableSystemInfo) { Get-SystemInfo }
 if ($EnableUserGroups) { Get-UserGroups }
@@ -1699,4 +1832,5 @@ if ($EnableUnquotedServicePaths) { Get-UnquotedServicePaths }
 if ($EnableServiceBinaryHijacking) { Get-ServiceBinaryHijacking }
 if ($EnableDLLHijacking) { Get-DLLHijacking }
 if ($EnableUserPrivileges) { Get-UserPrivileges }
+if ($EnableLDAP) { Get-LDAP }
 write-host "`n" -NoNewLine
