@@ -1698,7 +1698,6 @@ function Get-UserPrivileges {
 }
 
 function Get-LDAP {
-    Write-Host "`n" -NoNewLine
     Write-Host "`n===================================================" -ForegroundColor Cyan
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "                       LDAP                        " -ForegroundColor DarkBlue -BackgroundColor White
@@ -1708,72 +1707,72 @@ function Get-LDAP {
     # Active Directory Info
     Write-Host "`n" -NoNewLine
     Write-Host "[+] LDAP Nested Groups" -ForegroundColor Cyan
+
+    # ArrayList to store output
+    $outputLines = New-Object System.Collections.ArrayList
+
     function Process-Group {
         param (
             [string]$groupName,
             [System.Collections.ArrayList]$processedGroups,
             [System.Collections.ArrayList]$allGroups,
             $ldapDirSearcher,
+            [System.Collections.ArrayList]$output,
             [int]$indentLevel = 1
         )
-    
-        if ($processedGroups -contains $groupName) {
-            # Skip already processed groups to prevent infinite loops
-            return
-        }
-    
-        # Mark this group as processed
-        $processedGroups.Add($groupName) > $null  # Suppress output
-    
+
         # Indent based on the level in the hierarchy
         $indent = " " * ($indentLevel * 4)
-    
+
         # Search for the group in AD to fetch its members
         $ldapDirSearcher.Filter = "(&(objectCategory=group)(name=$groupName))"
         $result = $ldapDirSearcher.FindOne()
-    
+
         if ($result) {
             $groupMembers = $result.Properties["member"]
-    
+
             if ($groupMembers -and $groupMembers.Count -gt 0) {
-                # Display the group name in CYAN
-                Write-Host "$indent[-] $groupName" -ForegroundColor Cyan
-    
+                # Add the group name to the output
+                $output.Add(@{"Text"="$indent[-] $groupName"; "Color"="Cyan"}) > $null
+
                 # Separate members into non-groups and groups
                 $nonGroups = @()
                 $nestedGroups = @()
-    
+
                 foreach ($mem in $groupMembers) {
                     $memName = $mem -replace "CN=", "" -replace ",.*", ""
-    
+
                     if ($allGroups -contains $memName) {
                         $nestedGroups += $memName
                     } else {
                         $nonGroups += $memName
                     }
                 }
-    
-                # Display non-groups first
+
+                # Add non-groups to the output
                 foreach ($mem in $nonGroups) {
-                    Write-Host "$indent    $mem"
+                    $output.Add(@{"Text"="$indent    $mem"; "Color"="White"}) > $null
                 }
-    
+
                 # Recursively process nested groups
                 foreach ($group in $nestedGroups) {
-                    Process-Group -groupName $group -processedGroups $processedGroups -allGroups $allGroups -ldapDirSearcher $ldapDirSearcher -indentLevel ($indentLevel + 1)
+                    if (-not ($processedGroups -contains $group)) {
+                        $processedGroups.Add($group) > $null  # Mark as processed only to avoid infinite loops
+                    }
+                    Process-Group -groupName $group -processedGroups $processedGroups -allGroups $allGroups -ldapDirSearcher $ldapDirSearcher -output $output -indentLevel ($indentLevel + 1)
                 }
             } else {
-                # Display the group name in DARKGRAY if it has no members
-                Write-Host "$indent[-] $groupName (Empty)" -ForegroundColor DarkGray
+                # Add the group name as empty
+                $output.Add(@{"Text"="$indent[-] $groupName (Empty)"; "Color"="DarkGray"}) > $null
             }
         } else {
-            Write-Host "$indent    Group not found in AD"
+            $output.Add(@{"Text"="$indent    Group not found in AD"; "Color"="Red"}) > $null
         }
     }
-    
+
     # Main script logic
     $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-    
+
     if ($domainObj -notmatch "Current security context is not associated with an Active Directory") {
         $domainPDCOwner = $domainObj.PdcRoleOwner.Name
         $domainClass = ([adsi]'').distinguishedName
@@ -1782,7 +1781,7 @@ function Get-LDAP {
         $ldapDirSearcher = New-Object System.DirectoryServices.DirectorySearcher($ldapDirEntry)
         $ldapDirSearcher.Filter = "objectCategory=group"
         $ldapResult = $ldapDirSearcher.FindAll()
-    
+
         # Use an ArrayList for dynamic resizing
         $allGroups = New-Object System.Collections.ArrayList
         foreach ($obj in $ldapResult) {
@@ -1793,24 +1792,22 @@ function Get-LDAP {
                 }
             }
         }
-    
+
         # Initialize a processed group tracker to avoid infinite recursion
         $processedGroups = New-Object System.Collections.ArrayList
-    
+
         # Start processing each group
         foreach ($groupName in $allGroups) {
-            $groupOutputBefore = $false  # Track if any meaningful output is produced
-    
-            Process-Group -groupName $groupName -processedGroups $processedGroups -allGroups $allGroups -ldapDirSearcher $ldapDirSearcher
-            
-            # Add a blank line only if meaningful output was produced
-            if ($groupOutputBefore) {
-                Write-Host ""
-            }
+            Process-Group -groupName $groupName -processedGroups $processedGroups -allGroups $allGroups -ldapDirSearcher $ldapDirSearcher -output $outputLines
+        }
+
+        # Display the output with colors
+        foreach ($entry in $outputLines) {
+            Write-Host $entry.Text -ForegroundColor $entry.Color
         }
     }
 }
-    
+
 # Call enabled functions silently
 if ($EnableSystemInfo) { Get-SystemInfo }
 if ($EnableUserGroups) { Get-UserGroups }
