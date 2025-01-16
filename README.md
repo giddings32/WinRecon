@@ -8,13 +8,35 @@
 
 ## Features
 
-- **System Information Collection**: Gathers key system details such as OS version, architecture, and hostname.
-- **User and Group Enumeration**: Identifies all local users and groups, checking for any misconfigurations or privileged accounts that may be leveraged for escalation.
-- **Installed Software & Vulnerabilities**: Detects installed software and versioning, helping to identify outdated or vulnerable applications.
-- **Service Configuration Analysis**: Checks for misconfigured services, such as unquoted service paths or weak service permissions, that can be exploited.
-- **File & Registry Permissions**: Identifies files and registry keys with weak permissions that could be exploited for privilege escalation.
-- **Active Sessions & Historical Logins**: Scans for active sessions and recent login history to help identify potential paths for lateral movement or privilege escalation.
-- **Automated Process**: Reduces the time and effort required for manual enumeration by automating data collection.
+### User and Group Enumeration
+- **Local User Accounts**: Lists all local user accounts and highlights administrative accounts.
+- **Group Memberships**: Displays detailed information about group memberships.
+- **Domain Information**: Extracts information about domain users and domain controllers when applicable.
+
+### Credential Discovery
+- **Stored Credentials**: Identifies credentials stored in the system, such as in the registry or configuration files.
+- **Password Policies**: Retrieves domain and local password policies to highlight weak configurations.
+
+### Service and Task Enumeration
+- **Services**: Lists services with details like privileges, paths, and configurations.
+- **Scheduled Tasks**: Enumerates scheduled tasks to identify potential execution vectors.
+
+### Privilege Escalation Insights
+- **System Information**: Extracts OS details, patches, and configurations.
+- **Misconfigurations**: Identifies potential misconfigurations, such as writable directories or vulnerable registry keys.
+- **Kernel Exploits**: Checks for unpatched kernel vulnerabilities based on OS version.
+
+### File and Directory Insights
+- **Sensitive Files**: Searches for files containing potential credentials or sensitive data.
+- **Writable Directories**: Lists directories writable by non-privileged users.
+
+### Network Configuration
+- **Network Interfaces**: Displays information about active network interfaces.
+- **Listening Ports**: Identifies listening ports and associated services.
+
+### Logging and Reporting
+- **Comprehensive Logging**: Logs findings to a structured and easily readable format.
+- **Export Options**: Provides options to save results for later analysis.
 
 ---
 
