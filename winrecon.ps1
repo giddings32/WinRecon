@@ -18,7 +18,7 @@ $EnableUnquotedServicePaths = $true
 $EnableServiceBinaryHijacking = $true
 $EnableDLLHijacking = $true
 $EnableUserPrivileges = $true
-$EnableLDAP = $true
+$EnableAD = $true
 
 # Initial Menu for Recon Mode
 do {
@@ -100,7 +100,7 @@ switch ($ReconMode) {
         $EnableServiceBinaryHijacking = $false
         $EnableDLLHijacking = $false
         $EnableUserPrivileges = $false
-        $EnableLDAP = $false
+        $EnableAD = $false
         
 	# Ask user which functions to enable
         Write-Host "`n" -NoNewLine
@@ -153,7 +153,7 @@ switch ($ReconMode) {
                     "17" { $EnableServiceBinaryHijacking = $true }
                     "18" { $EnableDLLHijacking = $true }
                     "19" { $EnableUserPrivileges = $true }
-                    "20" { $EnableLDAP = $true }
+                    "20" { $EnableAD = $true }
                 }
             }
         }
@@ -209,7 +209,7 @@ switch ($ReconMode) {
                     "17" { $EnableServiceBinaryHijacking = $false }
                     "18" { $EnableDLLHijacking = $false }
                     "19" { $EnableUserPrivileges = $false }
-	            "20" { $EnableLDAP = $false }
+	            "20" { $EnableAD = $false }
                 }
             }
         }
@@ -1697,10 +1697,10 @@ function Get-UserPrivileges {
     }
 }
 
-function Get-LDAP {
+function Get-AD {
     Write-Host "`n===================================================" -ForegroundColor Cyan
     Write-Host "                                                   " -BackgroundColor White
-    Write-Host "                       LDAP                        " -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Host "                  Active Directory                 " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
 
@@ -1768,6 +1768,7 @@ function Get-LDAP {
         } else {
             $output.Add(@{"Text"="$indent    Group not found in AD"; "Color"="Red"}) > $null
         }
+        return $groupMember
     }
 
     # Main script logic
@@ -1782,7 +1783,6 @@ function Get-LDAP {
         $ldapDirSearcher.Filter = "objectCategory=group"
         $ldapResult = $ldapDirSearcher.FindAll()
 
-        # Use an ArrayList for dynamic resizing
         $allGroups = New-Object System.Collections.ArrayList
         foreach ($obj in $ldapResult) {
             $groupNames = $obj.Properties["name"]
@@ -2077,9 +2077,166 @@ function Get-LDAP {
             }
         }
     }
+
+    Write-Host "`n" -NoNewLine
+    Write-Host "`n[+] Loggedon Users" -ForegroundColor Cyan
+
+    $psLoggedonPath = Join-Path -Path (Get-Location).Path -ChildPath "PsLoggedon.exe"
+    $psLoggedonFound = Test-Path $psLoggedonPath
+
+    if (-Not $psLoggedonFound) {
+        Write-Host "    Skipped - PsLoggedon.exe not found" -ForegroundColor Red
+    } else {
+        $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+        $PDC = $domainObj.PdcRoleOwner.Name
+        $DN = ([adsi]'').distinguishedName
+        $LDAP = "LDAP://$PDC/$DN"
+        $direntry = New-Object System.DirectoryServices.DirectoryEntry($LDAP)
+        $dirsearcher = New-Object System.DirectoryServices.DirectorySearcher($direntry)
+
+        $dirsearcher.Filter = "(&(objectCategory=computer))"
+
+        $computers = $dirsearcher.FindAll()
+
+        foreach ($computer in $computers) {
+            $computerProps = $computer.Properties
+            $computerName = $computerProps["name"] | Select-Object -First 1
+
+            Write-Host "`n    [-] ${computerName}" -ForegroundColor Cyan
+
+            try {
+                $output = & $psLoggedonPath "\\$computerName" | ForEach-Object {
+                    if ($_ -notmatch "PsLoggedon v1\.35|Copyright \(C\)|Sysinternals|Connecting to Registry" -and
+                        $_ -notmatch "Unable to query resource logons") {
+                        $_.Trim()
+                    }
+                }
+
+                $output = $output | Where-Object { $_ -ne "" }
+                if ($output.Count -eq 0) {
+                    Write-Host "        No users logged on locally or via resource shares." -ForegroundColor DarkGray
+                } else {
+                    $localLogons = @()
+                    $resourceLogons = @()
+                    $currentSection = ""
+
+                    foreach ($line in $output) {
+                        if ($line -match "Users logged on locally:") {
+                            $currentSection = "local"
+                        } elseif ($line -match "Users logged on via resource shares:") {
+                            $currentSection = "resource"
+                        } elseif ($line -match "^(.*?)(\s{2,})(\S+\\\S+)$") {
+                            $time = $Matches[1].Trim()
+                            $user = $Matches[3].Trim()
+
+                            if ($time -eq "<unknown time>") {
+                                $flipped = "$user"
+                            } else {
+                                $flipped = "$user - $time"
+                            }
+
+                            if ($currentSection -eq "local") {
+                                $localLogons += $flipped
+                            } elseif ($currentSection -eq "resource") {
+                                $resourceLogons += $flipped
+                            }
+                        }
+                    }
+
+                    if ($localLogons.Count -gt 0) {
+                        Write-Host "        Users logged on locally:" -ForegroundColor White
+                        foreach ($logon in $localLogons) {
+                            Write-Host "            $logon" -ForegroundColor White
+                        }
+                    }
+
+                    if ($resourceLogons.Count -gt 0) {
+                        Write-Host "        Users logged on via resource shares:" -ForegroundColor White
+                        foreach ($logon in $resourceLogons) {
+                            Write-Host "            $logon" -ForegroundColor White
+                        }
+                    }
+                }
+            } catch {
+                Write-Host "        [!] Error: $($_.Exception.Message)" -ForegroundColor Red
+            }
+        }
+    }
+    
+    Write-Host "`n[+] Admin Access" -ForegroundColor Cyan
+    if (Test-Path .\PowerView.ps1) {
+        Import-Module .\PowerView.ps1
+        $adminAccessResults = Find-LocalAdminAccess -ErrorAction SilentlyContinue
+        if ($adminAccessResults) {
+            foreach ($access in $adminAccessResults) {
+                try {
+                    $ipAddress = (Resolve-DnsName -Name $access -ErrorAction SilentlyContinue | Where-Object {$_.QueryType -eq 'A'}).IPAddress
+                    if ($ipAddress) {
+                        Write-Host "    $access - $ipAddress" -ForegroundColor Green
+                    } else {
+                        Write-Host "    $access - [IP not found]" -ForegroundColor Yellow
+                    }
+                } catch {
+                    Write-Host "    $access - [Error resolving IP]" -ForegroundColor Red
+                }
+            }
+        } else {
+            Write-Host "[!] No admin access found for any computer." -ForegroundColor Red
+        }
+    
+        # Service Principal Names (SPN) Section
+        Write-Host "`n[+] Linked Service Principal Names" -ForegroundColor Cyan
+        $spnResults = Get-NetUser -SPN -ErrorAction SilentlyContinue
+        if ($spnResults) {
+            foreach ($spn in $spnResults) {
+                Write-Host "`n    [-] $($spn.samaccountname)" -ForegroundColor White
+                Write-Host "        SPN: $($spn.serviceprincipalname)" -ForegroundColor White
+            }
+        } else {
+            Write-Host "    No Service Principal Names found." -ForegroundColor Red
+        }
+    
+	Write-Host "`n[+] Enumerating Object Permissions" -ForegroundColor Cyan
+	foreach ($group in $allGroups) {
+            $permissions = Get-ObjectAcl -Identity $group -ErrorAction SilentlyContinue
+            if ($permissions) {
+                foreach ($entry in $permissions) {
+                    $rights = $entry.ActiveDirectoryRights
+                    $sid = $entry.SecurityIdentifier
+                    if ($rights -in @("GenericAll", "GenericWrite", "WriteOwner", "WriteDACL", "AllExtendedRights", "ForceChangePassword", "Self")) {
+                        $name = Convert-SidToName $sid
+			if ($name -notmatch "Domain Admins|Account Operators|Local System|Enterprise Admins") {
+                            Write-Host "`n    [-] Checking permissions for: $group" -ForegroundColor White
+                            Write-Host "        User: ($name)" -ForegroundColor White
+                            Write-Host "        Permissions: $rights" -ForegroundColor Green
+			} else {
+			}
+                    }
+                }
+            } else {
+                Write-Host "        No permissions found for $group." -ForegroundColor Red
+            }
+        }
+
+	Write-Host "`n[+] Domain Shares`n" -ForegroundColor Cyan
+	$shares = (Find-DomainShare | select computername,name) -replace '@{ComputerName=', '\\' -replace '; Name=', '\' -replace '}', ''
+	foreach ($share in $shares) {
+	    $shareAccess = (ls $share 2>&1 | Select-String "Access is denied|Cannot find path")
+	    if ($shareAccess -eq $null) { 
+	        Write-Host "    [-] $share" -ForegroundColor Green
+	    } else {
+	        Write-Host "    [-] $share" -ForegroundColor DarkGray
+	    }
+	} 
+    } else {
+        Write-Host "    Skipped - PowerView.ps1 not found" -ForegroundColor Red
+        Write-Host "`n[+] Linked Service Principal Names" -ForegroundColor Cyan
+        Write-Host "    Skipped - PowerView.ps1 not found" -ForegroundColor Red
+        Write-Host "`n[+] Enumerating Object Permissions" -ForegroundColor Cyan
+        Write-Host "    Skipped - PowerView.ps1 not found" -ForegroundColor Red
+    }
 }
 
-# Call enabled functions silently
 if ($EnableSystemInfo) { Get-SystemInfo }
 if ($EnableUserGroups) { Get-UserGroups }
 if ($EnableUserFolderContents) { Get-UserFolderContents }
@@ -2100,5 +2257,5 @@ if ($EnableUnquotedServicePaths) { Get-UnquotedServicePaths }
 if ($EnableServiceBinaryHijacking) { Get-ServiceBinaryHijacking }
 if ($EnableDLLHijacking) { Get-DLLHijacking }
 if ($EnableUserPrivileges) { Get-UserPrivileges }
-if ($EnableLDAP) { Get-LDAP }
+if ($EnableAD) { Get-AD }
 write-host "`n" -NoNewLine
