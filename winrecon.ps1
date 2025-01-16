@@ -1026,7 +1026,7 @@ function Get-ScheduledTaskEscalation {
     Write-Host "             Scheduled Task Escalation             " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
-    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Scheduled_Task_Escalation.md" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/Pentesting_Notes/blob/main/Windows/Scheduled_Task_Escalation.md" -ForegroundColor Cyan
 
     # Function to calculate task frequency
     function Calculate-TaskFrequency {
@@ -1178,7 +1178,7 @@ function Get-UnquotedServicePaths {
     Write-Host "             Unquoted Service Paths Check          " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
-    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Unquoted_Service_Paths.md" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/Pentesting_Notes/blob/main/Windows/Unquoted_Service_Paths.md" -ForegroundColor Cyan
 
     # Define inclusion for permissions: must contain W or F
     $includePermissionsRegex = ':(.*\b[WF]\b.*)'
@@ -1303,7 +1303,7 @@ function Get-ServiceBinaryHijacking {
     Write-Host "          Service Binary Hijacking Check           " -ForegroundColor DarkBlue -backgroundcolor white
     write-host "                                                   " -backgroundcolor white
     Write-Host "===================================================" -ForegroundColor Cyan
-    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/Service_Binary_Hijacking.md" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/Pentesting_Notes/blob/main/Windows/Service_Binary_Hijacking.md" -ForegroundColor Cyan
 
     # Define exclusion patterns for account names
     $excludePatterns = @(
@@ -1390,7 +1390,7 @@ function Get-DLLHijacking {
     Write-Host "               DLL Hijacking Check                 " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
-    Write-Host "[Ref]: https://github.com/giddings32/WinRecon/blob/main/attack-methods/DLL_Hijacking.md" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/Pentesting_Notes/blob/main/Windows/DLL_Hijacking.md" -ForegroundColor Cyan
 
     # List of known vulnerable software and versions
     $vulnerableSoftware = @(
@@ -1597,6 +1597,7 @@ function Get-UserPrivileges {
     Write-Host "                   User Privileges                 " -ForegroundColor DarkBlue -BackgroundColor White
     Write-Host "                                                   " -BackgroundColor White
     Write-Host "===================================================" -ForegroundColor Cyan
+    Write-Host "[Ref]: https://github.com/giddings32/Pentesting_Notes/blob/main/Windows/SeImpersonatePrivilege.md" -ForegroundColor Cyan
     Write-Host "`n" -NoNewLine
 
     try {
