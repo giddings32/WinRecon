@@ -1,4 +1,4 @@
-# ![WinRecon Logo](assets/winrecon-logo.png)
+# ![WinRecon Logo](assets/winrecon.png)
 
 ## WinRecon
 
