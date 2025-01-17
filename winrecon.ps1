@@ -2204,7 +2204,7 @@ function Get-AD {
                 foreach ($entry in $permissions) {
                     $rights = $entry.ActiveDirectoryRights
                     $sid = $entry.SecurityIdentifier
-                    if ($rights -in @("GenericAll", "GenericWrite", "WriteOwner", "WriteDACL", "AllExtendedRights", "ForceChangePassword", "Self")) {
+                    if ($rights -in @("GenericAll", "GenericWrite", "WriteOwner", "WriteDACL", "AllExtendedRights", "ForceChangePassword")) {
                         $name = Convert-SidToName $sid
 			if ($name -notmatch "Domain Admins|Account Operators|Local System|Enterprise Admins") {
                             Write-Host "`n    [-] Checking permissions for: $group" -ForegroundColor White
@@ -2218,11 +2218,58 @@ function Get-AD {
                 Write-Host "        No permissions found for $group." -ForegroundColor Red
             }
         }
+	
+	foreach ($user in $users) {
+            $userProps = $user.Properties
+            $username = $userProps["samaccountname"] | Select-Object -First 1
+
+            $permissions = Get-ObjectAcl -Identity $username -ErrorAction SilentlyContinue
+            if ($permissions) {
+                foreach ($entry in $permissions) {
+                    $rights = $entry.ActiveDirectoryRights
+                    $sid = $entry.SecurityIdentifier
+                    if ($rights -in @("GenericAll", "GenericWrite", "WriteOwner", "WriteDACL", "AllExtendedRights", "ForceChangePassword")) {
+                        $name = Convert-SidToName $sid
+			if ($name -notmatch "Domain Admins|Account Operators|Local System|Enterprise Admins") {
+                            Write-Host "`n    [-] Checking permissions for: $username" -ForegroundColor White
+                            Write-Host "        User: ($name)" -ForegroundColor White
+                            Write-Host "        Permissions: $rights" -ForegroundColor Green
+			} else {
+			}
+                    }
+                }
+            } else {
+                Write-Host "        No permissions found for $username." -ForegroundColor Red
+            }
+        }
+
+	foreach ($computer in $computers) {
+            $computerProps = $computer.Properties
+            $computerName = $computerProps["name"] | Select-Object -First 1
+            $permissions = Get-ObjectAcl -Identity $computerName -ErrorAction SilentlyContinue
+            if ($permissions) {
+                foreach ($entry in $permissions) {
+                    $rights = $entry.ActiveDirectoryRights
+                    $sid = $entry.SecurityIdentifier
+                    if ($rights -in @("GenericAll", "GenericWrite", "WriteOwner", "WriteDACL", "AllExtendedRights", "ForceChangePassword")) {
+                        $name = Convert-SidToName $sid
+			if ($name -notmatch "Domain Admins|Account Operators|Local System|Enterprise Admins") {
+                            Write-Host "`n    [-] Checking permissions for: $computerName" -ForegroundColor White
+                            Write-Host "        User: ($name)" -ForegroundColor White
+                            Write-Host "        Permissions: $rights" -ForegroundColor Green
+			} else {
+			}
+                    }
+                }
+            } else {
+                Write-Host "        No permissions found for $computerName." -ForegroundColor Red
+            }
+        }
 
 	Write-Host "`n[+] Domain Shares`n" -ForegroundColor Cyan
 	$shares = (Find-DomainShare | select computername,name) -replace '@{ComputerName=', '\\' -replace '; Name=', '\' -replace '}', ''
 	foreach ($share in $shares) {
-	    $shareAccess = (ls $share 2>&1 | Select-String "Access is denied|Cannot find path")
+	    $shareAccess = (ls $share 2>&1 | Select-String "Access is denied|Cannot find path|PermissionDenied")
 	    if ($shareAccess -eq $null) { 
 	        Write-Host "    [-] $share" -ForegroundColor Green
 	    } else {
